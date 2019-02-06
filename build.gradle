@@ -1,0 +1,26 @@
+buildscript {
+    repositories {
+        google()
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.mparticle:android-kit-plugin:' + project.version
+        classpath 'com.google.gms:google-services:3.0.0'
+    }
+}
+
+apply plugin: 'com.mparticle.kit'
+
+
+dependencies {
+    testImplementation 'junit:junit:4.12'
+    testImplementation project(':testutils')
+    testImplementation files('libs/java-json.jar')
+    testImplementation 'org.mockito:mockito-core:2.7.22'
+
+    implementation 'com.google.firebase:firebase-core:16.0.6'
+
+    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+}
