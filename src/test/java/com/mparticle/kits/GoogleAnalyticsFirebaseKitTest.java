@@ -187,6 +187,13 @@ public class GoogleAnalyticsFirebaseKitTest {
         public void replayAndDisableQueue() {
             
         }
+
+        @Override
+        public KitListener getKitListener() {
+            return KitListener.EMPTY;
+        }
+
+
     };
 
 }
