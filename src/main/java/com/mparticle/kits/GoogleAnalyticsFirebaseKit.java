@@ -35,6 +35,13 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     final static String USER_ID_EMAIL_VALUE = "email";
     final static String USER_ID_MPID_VALUE = "mpid";
 
+    private static String[] forbiddenPrefixes = new String[]{"google_", "firebase_", "ga_"};
+    private static int eventMaxLength = 40;
+    private static int userAttributeMaxLength = 24;
+
+    private static int eventValMaxLength = 100;
+    private static int userAttributeValMaxLength = 36;
+
     @Override
     public String getName() {
         return "Google Analytics for Firebase";
@@ -226,11 +233,12 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         if (event.isScreenEvent()) {
             return FirebaseAnalytics.Event.VIEW_ITEM;
         }
-        return event.getEventName();
+        return standardizeName(event.getEventName(), true);
     }
 
     Bundle toBundle(Map<String, String> map) {
         Bundle bundle = new Bundle();
+        map = standardizeAttributes(map, true);
         if (map != null) {
             for (Map.Entry<String, String> entry : map.entrySet()) {
                 bundle.putString(entry.getKey(), entry.getValue());
@@ -289,12 +297,12 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
 
     @Override
     public void onIncrementUserAttribute(String key, int incrementedBy, String value, FilteredMParticleUser filteredMParticleUser) {
-        FirebaseAnalytics.getInstance(getContext()).setUserProperty(key, value);
+        FirebaseAnalytics.getInstance(getContext()).setUserProperty(standardizeName(key, false), value);
     }
 
     @Override
     public void onRemoveUserAttribute(String key, FilteredMParticleUser filteredMParticleUser) {
-        FirebaseAnalytics.getInstance(getContext()).setUserProperty(key, null);
+        FirebaseAnalytics.getInstance(getContext()).setUserProperty(standardizeName(key, false), null);
     }
 
     /**
@@ -303,7 +311,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     @Override
     public void onSetUserAttribute(String key, Object value, FilteredMParticleUser filteredMParticleUser) {
         if (value instanceof String) {
-            FirebaseAnalytics.getInstance(getContext()).setUserProperty(key, (String)value);
+            FirebaseAnalytics.getInstance(getContext()).setUserProperty(standardizeName(key, false), standardizeValue((String)value, false));
         }
     }
 
@@ -318,8 +326,9 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     }
 
     @Override
-    public void onSetAllUserAttributes(Map<String, String> userAttribtues, Map<String, List<String>> userAttributeLists, FilteredMParticleUser filteredMParticleUser) {
-        for (Map.Entry<String, String> entry: userAttribtues.entrySet()) {
+    public void onSetAllUserAttributes(Map<String, String> userAttributes, Map<String, List<String>> userAttributeLists, FilteredMParticleUser filteredMParticleUser) {
+        userAttributes = standardizeAttributes(userAttributes, false);
+        for (Map.Entry<String, String> entry: userAttributes.entrySet()) {
             FirebaseAnalytics.getInstance(getContext()).setUserProperty(entry.getKey(), entry.getValue());
         }
     }
@@ -332,6 +341,62 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     @Override
     public void onConsentStateUpdated(ConsentState consentState, ConsentState consentState1, FilteredMParticleUser filteredMParticleUser) {
 
+    }
+
+    Map<String, String> standardizeAttributes(Map<String, String> attributes, boolean event) {
+        if (attributes == null) {
+            return null;
+        }
+        Map<String, String> attributeCopy = new HashMap<>();
+        for (Map.Entry<String, String> entry: attributes.entrySet()) {
+            attributeCopy.put(standardizeName(entry.getKey(), event), standardizeValue(entry.getValue(), event));
+        }
+        return attributeCopy;
+    }
+
+    final String standardizeValue(String value, boolean event) {
+        if (value == null) {
+            return value;
+        }
+        if (event) {
+            if (value.length() > eventValMaxLength) {
+                value = value.substring(0, eventValMaxLength);
+            }
+        } else {
+            if (value.length() > userAttributeValMaxLength) {
+                value = value.substring(0, userAttributeValMaxLength);
+            }
+        }
+        return value;
+    }
+
+    final String standardizeName(String name, boolean event) {
+        if (name == null) {
+            return null;
+        }
+        name = name.replace(" ", "_");
+        name = name.replaceAll("[^a-zA-Z0-9_" +
+                "]", "");
+
+        for(String forbiddenPrefix: forbiddenPrefixes) {
+            if (name.startsWith(forbiddenPrefix)) {
+                name = name.replaceFirst(forbiddenPrefix, "");
+            }
+        }
+
+        while(name.length() > 0 && !Character.isLetter(name.toCharArray()[0])) {
+            name = name.substring(1);
+        }
+        if (event) {
+            if (name.length() > eventMaxLength) {
+                name = name.substring(0, eventMaxLength);
+            }
+        } else {
+            if (name.length() > userAttributeMaxLength) {
+                name = name.substring(0, userAttributeMaxLength);
+            }
+        }
+        return name;
     }
 
     class PickyBundle {

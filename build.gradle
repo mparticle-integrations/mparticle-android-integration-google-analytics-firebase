@@ -24,7 +24,6 @@ dependencies {
     testImplementation 'junit:junit:4.12'
     testImplementation project(':testutils')
     testImplementation files('libs/java-json.jar')
-    testImplementation 'org.mockito:mockito-core:2.7.22'
 
     implementation 'com.google.firebase:firebase-core:16.0.6'
 }
