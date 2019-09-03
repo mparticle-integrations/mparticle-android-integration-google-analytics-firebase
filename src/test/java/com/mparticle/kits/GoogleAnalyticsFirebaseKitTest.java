@@ -29,8 +29,10 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import static junit.framework.TestCase.assertEquals;
+import static junit.framework.TestCase.assertTrue;
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -40,6 +42,7 @@ import static junit.framework.TestCase.assertEquals;
 public class GoogleAnalyticsFirebaseKitTest {
     GoogleAnalyticsFirebaseKit kitInstance;
     FirebaseAnalytics firebaseSdk;
+    Random random = new Random();
 
     @Before
     public void before() throws JSONException {
@@ -76,14 +79,16 @@ public class GoogleAnalyticsFirebaseKitTest {
             assertEquals(1, firebaseSdk.getLoggedEvents().size());
             firebaseEvent = firebaseSdk.getLoggedEvents().get(0);
             if (event.getEventType() != MParticle.EventType.Search) {
-                assertEquals(event.getEventName(), firebaseEvent.getKey());
+                assertEquals(kitInstance.standardizeName(event.getEventName(), true), firebaseEvent.getKey());
             } else {
                 assertEquals("search", firebaseEvent.getKey());
             }
             if (event.getInfo() != null) {
                 assertEquals(event.getInfo().size(), firebaseEvent.getValue().size());
                 for (Map.Entry<String, String> entry : event.getInfo().entrySet()) {
-                    assertEquals(entry.getValue(), firebaseEvent.getValue().getString(entry.getKey()));
+                    String key = kitInstance.standardizeName(entry.getKey(), true);
+                    String value = kitInstance.standardizeValue(entry.getValue(), true);
+                    assertEquals(value, firebaseEvent.getValue().getString(key));
                 }
             }
         }
@@ -119,6 +124,55 @@ public class GoogleAnalyticsFirebaseKitTest {
         }
     }
 
+
+    @Test
+    public void testNameStandardization() {
+        String[] badPrefixes = new String[]{"firebase_event_name", "google_event_name", "ga_event_name"};
+        for (String badPrefix: badPrefixes) {
+            String clean = kitInstance.standardizeName(badPrefix, random.nextBoolean());
+            assertEquals("event_name", clean);
+        }
+
+        String emptySpace1 = "event name";
+        String emptySpace2 = "event_name ";
+        String emptySpace3 = "event  name ";
+
+        assertEquals("event_name", kitInstance.standardizeName(emptySpace1, random.nextBoolean()));
+        assertEquals("event_name_", kitInstance.standardizeName(emptySpace2, random.nextBoolean()));
+        assertEquals("event__name_", kitInstance.standardizeName(emptySpace3, random.nextBoolean()));
+
+        String[] badStarts = new String[]{
+                "!@#$%^&*()_+=[]{}|'\"?><:;event_name",
+                "_event_name",
+                "   event_name",
+                "_event_name"};
+
+        for (String badStart: badStarts) {
+            String clean = kitInstance.standardizeName(badStart, random.nextBoolean());
+            assertEquals("event_name", clean);
+        }
+
+        String tooLong = "abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890";
+
+        String sanitized = kitInstance.standardizeName(tooLong, true);
+        assertEquals(40, sanitized.length());
+        assertTrue(tooLong.startsWith(sanitized));
+
+        sanitized = kitInstance.standardizeName(tooLong, false);
+        assertEquals(24, sanitized.length());
+        assertTrue(tooLong.startsWith(sanitized));
+
+        sanitized = kitInstance.standardizeValue(tooLong, true);
+        assertEquals(100, sanitized.length());
+        assertTrue(tooLong.startsWith(sanitized));
+
+        sanitized = kitInstance.standardizeValue(tooLong, false);
+        assertEquals(36, sanitized.length());
+        assertTrue(tooLong.startsWith(sanitized));
+
+
+
+    }
 
 
 
