@@ -26,8 +26,8 @@ android {
 
 dependencies {
     testImplementation 'junit:junit:4.12'
-    testImplementation project(':testutils')
     testImplementation files('libs/java-json.jar')
+    testImplementation files('libs/test-utils.aar')
 
     implementation 'com.google.firebase:firebase-core:16.0.6'
 }
