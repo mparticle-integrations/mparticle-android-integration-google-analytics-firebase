@@ -10,7 +10,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.mparticle:android-kit-plugin:' + project.version
-        classpath 'com.google.gms:google-services:3.0.0'
+        classpath 'com.google.gms:google-services:4.3.3'
     }
 }
 
