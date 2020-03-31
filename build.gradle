@@ -29,5 +29,5 @@ dependencies {
     testImplementation files('libs/java-json.jar')
     testImplementation files('libs/test-utils.aar')
 
-    compileOnly 'com.google.firebase:firebase-core:16.0.6'
+    compileOnly 'com.google.firebase:firebase-core:17.3.0'
 }
