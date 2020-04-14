@@ -29,5 +29,5 @@ dependencies {
     testImplementation files('libs/java-json.jar')
     testImplementation files('libs/test-utils.aar')
 
-    implementation 'com.google.firebase:firebase-analytics:17.3.0'
+    compileOnly 'com.google.firebase:firebase-analytics:17.3.0'
 }
