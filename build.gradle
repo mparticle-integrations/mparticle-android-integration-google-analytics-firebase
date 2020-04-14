@@ -10,7 +10,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.mparticle:android-kit-plugin:' + project.version
-        classpath 'com.google.gms:google-services:3.0.0'
+        classpath 'com.google.gms:google-services:4.3.3'
     }
 }
 
@@ -25,9 +25,9 @@ android {
 
 
 dependencies {
-    testImplementation 'junit:junit:4.12'
+    testImplementation 'junit:junit:4.13'
     testImplementation files('libs/java-json.jar')
     testImplementation files('libs/test-utils.aar')
 
-    implementation 'com.google.firebase:firebase-core:17.2.1'
+    implementation 'com.google.firebase:firebase-analytics:17.3.0'
 }
