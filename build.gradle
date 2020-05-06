@@ -28,6 +28,8 @@ dependencies {
     testImplementation 'junit:junit:4.13'
     testImplementation files('libs/java-json.jar')
     testImplementation files('libs/test-utils.aar')
+    testImplementation 'com.android.support:appcompat-v7:+'
 
     compileOnly 'com.google.firebase:firebase-analytics:[17.3.0,)'
+
 }
