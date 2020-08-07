@@ -49,11 +49,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
 
     @Override
     protected List<ReportingMessage> onKitCreate(Map<String, String> map, Context context) throws IllegalArgumentException {
-        try {
-            FirebaseAnalytics.getInstance(context).getFirebaseInstanceId();
-        } catch (Exception ex) {
-            throw new RuntimeException("Firebase not initialized. Check to make sure your google-services.json file is in the correct location");
-        }
+        Logger.info(getName() + " Kit relies on a functioning instance of Firebase Analytics. If your Firebase Analytics instance is not configured properly, this Kit will not work");
         return null;
     }
 
