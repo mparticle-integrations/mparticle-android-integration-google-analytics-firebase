@@ -8,6 +8,7 @@ import android.os.Bundle;
 import com.google.firebase.analytics.FirebaseAnalytics;
 import com.mparticle.MPEvent;
 import com.mparticle.MParticle;
+import com.mparticle.MParticleOptions;
 import com.mparticle.commerce.CommerceEvent;
 import com.mparticle.commerce.Product;
 import com.mparticle.commerce.Promotion;
@@ -209,6 +210,11 @@ public class GoogleAnalyticsFirebaseKitTest {
 
         @Override
         public JSONArray getLatestKitConfiguration() {
+            return null;
+        }
+
+        @Override
+        public MParticleOptions.DataplanOptions getDataplanOptions() {
             return null;
         }
 
