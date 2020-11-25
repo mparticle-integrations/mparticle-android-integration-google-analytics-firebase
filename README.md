@@ -8,7 +8,7 @@ This repository contains the [Google Analytics for Firebase](https://firebase.go
 
     ```groovy
     dependencies {
-        compile 'com.mparticle:android-googleanalyticsfirebase-kit:5+'
+        implementation 'com.mparticle:android-googleanalyticsfirebase-kit:5+'
     }
     ```
 2. Follow the mParticle Android SDK [quick-start](https://github.com/mParticle/mparticle-android-sdk), then rebuild and launch your app, and verify that you see `"Google Analytics for Firebase detected"` in the output of `adb logcat`.
