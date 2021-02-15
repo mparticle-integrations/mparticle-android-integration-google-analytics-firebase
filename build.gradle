@@ -25,7 +25,7 @@ android {
 
 
 dependencies {
-    testImplementation 'junit:junit:4.13'
+    testImplementation 'junit:junit:4.13.2'
     testImplementation files('libs/java-json.jar')
     testImplementation files('libs/test-utils.aar')
     testImplementation 'androidx.appcompat:appcompat:1.2.0'
