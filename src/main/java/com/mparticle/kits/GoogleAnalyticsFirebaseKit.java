@@ -370,10 +370,10 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         if (name == null) {
             return null;
         }
-        name = name.replace(" ", "_");
         name = name.replaceAll("[^a-zA-Z0-9_" +
-                "]", "");
-
+                "] ", "");
+        name = name.replace(" ", "_");
+        
         for(String forbiddenPrefix: forbiddenPrefixes) {
             if (name.startsWith(forbiddenPrefix)) {
                 name = name.replaceFirst(forbiddenPrefix, "");
