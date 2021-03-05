@@ -137,10 +137,13 @@ public class GoogleAnalyticsFirebaseKitTest {
         String emptySpace1 = "event name";
         String emptySpace2 = "event_name ";
         String emptySpace3 = "event  name ";
+        String emptySpace4 = "event - name ";
 
         assertEquals("event_name", kitInstance.standardizeName(emptySpace1, random.nextBoolean()));
         assertEquals("event_name_", kitInstance.standardizeName(emptySpace2, random.nextBoolean()));
-        assertEquals("event__name_", kitInstance.standardizeName(emptySpace3, random.nextBoolean()));
+        assertEquals("event_name_", kitInstance.standardizeName(emptySpace3, random.nextBoolean()));
+        assertEquals("event_name_", kitInstance.standardizeName(emptySpace4, random.nextBoolean()));
+
 
         String[] badStarts = new String[]{
                 "!@#$%^&*()_+=[]{}|'\"?><:;event_name",
