@@ -54,6 +54,7 @@ public class GoogleAnalyticsFirebaseKitTest {
         Mockito.when(MParticle.getInstance().Identity()).thenReturn(Mockito.mock(IdentityApi.class));
         KitManagerImpl kitManager = new KitManagerImpl(Mockito.mock(Context.class), null, emptyCoreCallbacks,  new BackgroundTaskHandler() {
             public void executeNetworkRequest(Runnable runnable) { }
+
         });
         kitInstance.setKitManager(kitManager);
         kitInstance.setConfiguration(KitConfiguration.createKitConfiguration(new JSONObject().put("id", "-1")));
@@ -173,14 +174,18 @@ public class GoogleAnalyticsFirebaseKitTest {
         sanitized = kitInstance.standardizeValue(tooLong, false);
         assertEquals(36, sanitized.length());
         assertTrue(tooLong.startsWith(sanitized));
+    }
 
-
-
+    @Test
+    public void testScreenNameSanitized() {
+        kitInstance.logScreen("Some long Screen name", null);
+        assertEquals("Some_long_Screen_name", FirebaseAnalytics.getInstance(null).getCurrentScreenName());
     }
 
 
 
     CoreCallbacks emptyCoreCallbacks = new CoreCallbacks() {
+        Activity activity = new Activity();
         @Override
         public boolean isBackgrounded() {
             return false;
@@ -208,7 +213,7 @@ public class GoogleAnalyticsFirebaseKitTest {
 
         @Override
         public WeakReference<Activity> getCurrentActivity() {
-            return null;
+            return new WeakReference<Activity>(activity);
         }
 
         @Override

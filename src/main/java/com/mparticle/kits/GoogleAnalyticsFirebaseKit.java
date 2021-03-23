@@ -85,7 +85,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     public List<ReportingMessage> logScreen(String s, Map<String, String> map) {
         Activity activity = getCurrentActivity().get();
         if (activity != null) {
-            FirebaseAnalytics.getInstance(getContext()).setCurrentScreen(activity, s, null);
+            FirebaseAnalytics.getInstance(getContext()).setCurrentScreen(activity, standardizeName(s, false), null);
             return Collections.singletonList(new ReportingMessage(this, ReportingMessage.MessageType.SCREEN_VIEW, System.currentTimeMillis(), null));
         }
         return null;

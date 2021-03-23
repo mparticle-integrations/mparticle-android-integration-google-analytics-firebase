@@ -19,6 +19,8 @@ public class FirebaseAnalytics {
 
     LinkedList<Map.Entry<String, Bundle>> loggedEvents = new LinkedList<>();
     static String firebaseId;
+    private String currentScreen;
+
 
     static FirebaseAnalytics instance;
 
@@ -38,7 +40,11 @@ public class FirebaseAnalytics {
     }
 
     public void setCurrentScreen(Activity currentActivity, String screenName, String classOverride) {
+        currentScreen = screenName;
+    }
 
+    public String getCurrentScreenName() {
+        return currentScreen;
     }
 
     public void setUserProperty(String key, String value) {
