@@ -55,7 +55,7 @@ public class GoogleAnalyticsFirebaseKitTest {
         KitManagerImpl kitManager = new KitManagerImpl(Mockito.mock(Context.class), null, emptyCoreCallbacks,  new BackgroundTaskHandler() {
             public void executeNetworkRequest(Runnable runnable) { }
 
-        });
+        }, null);
         kitInstance.setKitManager(kitManager);
         kitInstance.setConfiguration(KitConfiguration.createKitConfiguration(new JSONObject().put("id", "-1")));
         kitInstance.onKitCreate(new HashMap<String, String>(), Mockito.mock(Context.class));
