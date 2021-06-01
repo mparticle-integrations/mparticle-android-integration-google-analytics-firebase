@@ -127,7 +127,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 instance.logEvent(eventName, bundle);
                 break;
             case Product.PURCHASE:
-                eventName = FirebaseAnalytics.Event.ECOMMERCE_PURCHASE;
+                eventName = FirebaseAnalytics.Event.PURCHASE;
                 value = getValue(commerceEvent);
                 bundle = getTransactionAttributesBundle(commerceEvent)
                         .putDouble(FirebaseAnalytics.Param.VALUE, value)
@@ -136,7 +136,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 instance.logEvent(eventName, bundle);
                 break;
             case Product.REFUND:
-                eventName = FirebaseAnalytics.Event.PURCHASE_REFUND;
+                eventName = FirebaseAnalytics.Event.REFUND;
                 value = getValue(commerceEvent);
                 bundle = getTransactionAttributesBundle(commerceEvent)
                         .putDouble(FirebaseAnalytics.Param.VALUE, value)
@@ -166,12 +166,6 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 break;
             case Product.DETAIL:
                 eventName = FirebaseAnalytics.Event.VIEW_ITEM;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
-                break;
-            case Product.REMOVE_FROM_WISHLIST:
-                eventName = Product.REMOVE_FROM_WISHLIST;
                 for (Bundle lBundle: getProductBundles(commerceEvent)) {
                     instance.logEvent(eventName, lBundle);
                 }
@@ -264,7 +258,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
             return pickyBundle;
         }
         return pickyBundle
-                .putString(FirebaseAnalytics.Param.ITEM_ID, transactionAttributes.getId())
+                .putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionAttributes.getId())
                 .putDouble(FirebaseAnalytics.Param.TAX, transactionAttributes.getTax())
                 .putDouble(FirebaseAnalytics.Param.SHIPPING, transactionAttributes.getShipping())
                 .putString(FirebaseAnalytics.Param.COUPON, transactionAttributes.getCouponCode());
