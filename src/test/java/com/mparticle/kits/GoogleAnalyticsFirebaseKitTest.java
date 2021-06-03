@@ -117,11 +117,13 @@ public class GoogleAnalyticsFirebaseKitTest {
             if (Modifier.isPublic(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
                 firebaseSdk.clearLoggedEvents();
                 String eventType = field.get(null).toString();
-                CommerceEvent event = new CommerceEvent.Builder(eventType, new Product.Builder("asdv", "asdv", 1.3).build())
-                        .transactionAttributes(new TransactionAttributes().setId("235").setRevenue(23.3).setAffiliation("231"))
-                        .build();
-                kitInstance.logEvent(event);
-                assertEquals("failed for event type: " + eventType, 1, firebaseSdk.getLoggedEvents().size());
+                if (!eventType.equals("remove_from_wishlist")) {
+                    CommerceEvent event = new CommerceEvent.Builder(eventType, new Product.Builder("asdv", "asdv", 1.3).build())
+                            .transactionAttributes(new TransactionAttributes().setId("235").setRevenue(23.3).setAffiliation("231"))
+                            .build();
+                    kitInstance.logEvent(event);
+                    assertEquals("failed for event type: " + eventType, 1, firebaseSdk.getLoggedEvents().size());
+                }
             }
         }
     }
