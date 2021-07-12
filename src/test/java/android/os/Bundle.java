@@ -22,6 +22,10 @@ public class Bundle {
         map.put(key, value);
     }
 
+    public void putParcelableArray(String key, Parcelable[] value) {
+        map.put(key, value);
+    }
+
     public double getDouble(String key) {
         return (double)map.get(key);
     }

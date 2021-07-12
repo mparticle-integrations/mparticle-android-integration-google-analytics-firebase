@@ -100,79 +100,44 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     public List<ReportingMessage> logEvent(CommerceEvent commerceEvent) {
         FirebaseAnalytics instance = FirebaseAnalytics.getInstance(getContext());
         String eventName;
-        Bundle bundle;
         if (commerceEvent == null || commerceEvent.getProductAction() == null) {
             return null;
         }
+        Bundle bundle = getCommerceEventBundle(commerceEvent)
+        .getBundle();
         switch (commerceEvent.getProductAction()) {
             case Product.ADD_TO_CART:
                 eventName = FirebaseAnalytics.Event.ADD_TO_CART;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
                 break;
             case Product.ADD_TO_WISHLIST:
                 eventName = FirebaseAnalytics.Event.ADD_TO_WISHLIST;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
                 break;
             case Product.CHECKOUT:
                 eventName = FirebaseAnalytics.Event.BEGIN_CHECKOUT;
-                Double value = getValue(commerceEvent);
-                bundle = getTransactionAttributesBundle(commerceEvent)
-                        .putDouble(FirebaseAnalytics.Param.VALUE, value)
-                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency())
-                        .getBundle();
-                instance.logEvent(eventName, bundle);
                 break;
             case Product.PURCHASE:
                 eventName = FirebaseAnalytics.Event.PURCHASE;
-                value = getValue(commerceEvent);
-                bundle = getTransactionAttributesBundle(commerceEvent)
-                        .putDouble(FirebaseAnalytics.Param.VALUE, value)
-                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency())
-                        .getBundle();
-                instance.logEvent(eventName, bundle);
                 break;
             case Product.REFUND:
                 eventName = FirebaseAnalytics.Event.REFUND;
-                value = getValue(commerceEvent);
-                bundle = getTransactionAttributesBundle(commerceEvent)
-                        .putDouble(FirebaseAnalytics.Param.VALUE, value)
-                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency())
-                        .getBundle();
-                instance.logEvent(eventName, bundle);
                 break;
             case Product.REMOVE_FROM_CART:
                 eventName = FirebaseAnalytics.Event.REMOVE_FROM_CART;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
                 break;
             case Product.CLICK:
                 eventName = FirebaseAnalytics.Event.SELECT_CONTENT;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
                 break;
             case Product.CHECKOUT_OPTION:
                 eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
-                bundle = new PickyBundle()
-                        .putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.getCheckoutOptions())
-                        .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.getCheckoutStep())
-                        .getBundle();
-                instance.logEvent(eventName, bundle);
                 break;
             case Product.DETAIL:
                 eventName = FirebaseAnalytics.Event.VIEW_ITEM;
-                for (Bundle lBundle: getProductBundles(commerceEvent)) {
-                    instance.logEvent(eventName, lBundle);
-                }
                 break;
             default:
                 return null;
         }
+
+        instance.logEvent(eventName, bundle);
         return Collections.singletonList(ReportingMessage.fromEvent(this, commerceEvent));
     }
 
@@ -237,18 +202,31 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         return bundle;
     }
 
-    List<Bundle> getProductBundles(CommerceEvent commerceEvent) {
-        List<Bundle> bundles = new ArrayList<>();
-        List<Product> products = commerceEvent.getProducts();
-        if (products == null) {
-            return bundles;
+    PickyBundle getCommerceEventBundle(CommerceEvent commerceEvent) {
+        PickyBundle pickyBundle = getTransactionAttributesBundle(commerceEvent);
+        return pickyBundle
+                .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency())
+                .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
+                .putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.getCheckoutOptions())
+                .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.getCheckoutStep());
+    }
+
+    Bundle[] getProductBundles(CommerceEvent commerceEvent) {
+        if (commerceEvent.getProducts() != null) {
+            Bundle[] bundles = new Bundle[commerceEvent.getProducts().size()];
+            List<Product> products = commerceEvent.getProducts();
+            if (products == null) {
+                return bundles;
+            }
+            int i = 0;
+            for (Product product: products) {
+                PickyBundle bundle = getBundle(product)
+                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency());
+                bundles[i] = bundle.getBundle();
+                i++;
+            }
         }
-        for (Product product: products) {
-            PickyBundle bundle = getBundle(product)
-                    .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency());
-            bundles.add(bundle.getBundle());
-        }
-        return bundles;
+        return new Bundle[0];
     }
 
     PickyBundle getTransactionAttributesBundle(CommerceEvent commerceEvent) {
@@ -259,6 +237,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         }
         return pickyBundle
                 .putString(FirebaseAnalytics.Param.TRANSACTION_ID, transactionAttributes.getId())
+                .putDouble(FirebaseAnalytics.Param.VALUE, transactionAttributes.getRevenue())
                 .putDouble(FirebaseAnalytics.Param.TAX, transactionAttributes.getTax())
                 .putDouble(FirebaseAnalytics.Param.SHIPPING, transactionAttributes.getShipping())
                 .putString(FirebaseAnalytics.Param.COUPON, transactionAttributes.getCouponCode());
@@ -270,7 +249,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 .putString(FirebaseAnalytics.Param.ITEM_ID, product.getSku())
                 .putString(FirebaseAnalytics.Param.ITEM_NAME, product.getName())
                 .putString(FirebaseAnalytics.Param.ITEM_CATEGORY, product.getCategory())
-                .putDouble(FirebaseAnalytics.Param.VALUE, product.getUnitPrice());
+                .putDouble(FirebaseAnalytics.Param.PRICE, product.getUnitPrice());
     }
 
     private Double getValue(CommerceEvent commerceEvent) {
@@ -408,6 +387,13 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         PickyBundle putInt(String key, Integer value) {
             if (value != null) {
                 bundle.putInt(key, value);
+            }
+            return this;
+        }
+
+        PickyBundle putBundleList(String key, Bundle[] value) {
+            if (value != null) {
+                bundle.putParcelableArray(key, value);
             }
             return this;
         }
