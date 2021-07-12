@@ -212,19 +212,21 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     }
 
     Bundle[] getProductBundles(CommerceEvent commerceEvent) {
-        Bundle[] bundles = new Bundle[commerceEvent.getProducts().size()];
-        List<Product> products = commerceEvent.getProducts();
-        if (products == null) {
-            return bundles;
+        if (commerceEvent.getProducts() != null) {
+            Bundle[] bundles = new Bundle[commerceEvent.getProducts().size()];
+            List<Product> products = commerceEvent.getProducts();
+            if (products == null) {
+                return bundles;
+            }
+            int i = 0;
+            for (Product product: products) {
+                PickyBundle bundle = getBundle(product)
+                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency());
+                bundles[i] = bundle.getBundle();
+                i++;
+            }
         }
-        int i = 0;
-        for (Product product: products) {
-            PickyBundle bundle = getBundle(product)
-                    .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency());
-            bundles[i] = bundle.getBundle();
-            i++;
-        }
-        return bundles;
+        return new Bundle[0];
     }
 
     PickyBundle getTransactionAttributesBundle(CommerceEvent commerceEvent) {
