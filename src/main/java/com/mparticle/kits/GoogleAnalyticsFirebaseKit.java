@@ -204,8 +204,13 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
 
     PickyBundle getCommerceEventBundle(CommerceEvent commerceEvent) {
         PickyBundle pickyBundle = getTransactionAttributesBundle(commerceEvent);
+        String currency = commerceEvent.getCurrency();
+        if (currency == null) {
+            Logger.info("Currency field required by Firebase was not set, defaulting to 'USD'");
+            currency = "USD";
+        }
         return pickyBundle
-                .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.getCurrency())
+                .putString(FirebaseAnalytics.Param.CURRENCY, currency)
                 .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
                 .putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.getCheckoutOptions())
                 .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.getCheckoutStep());
