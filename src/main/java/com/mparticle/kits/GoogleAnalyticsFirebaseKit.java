@@ -217,12 +217,9 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     }
 
     Bundle[] getProductBundles(CommerceEvent commerceEvent) {
-        if (commerceEvent.getProducts() != null) {
-            Bundle[] bundles = new Bundle[commerceEvent.getProducts().size()];
-            List<Product> products = commerceEvent.getProducts();
-            if (products == null) {
-                return bundles;
-            }
+        List<Product> products = commerceEvent.getProducts();
+        if (products != null) {
+            Bundle[] bundles = new Bundle[products.size()];
             int i = 0;
             for (Product product: products) {
                 PickyBundle bundle = getBundle(product)
@@ -230,6 +227,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 bundles[i] = bundle.getBundle();
                 i++;
             }
+            return bundles;
         }
         return new Bundle[0];
     }
@@ -250,7 +248,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
 
     PickyBundle getBundle(Product product) {
         return new PickyBundle()
-                .putDouble(FirebaseAnalytics.Param.QUANTITY, product.getQuantity())
+                .putLong(FirebaseAnalytics.Param.QUANTITY, (long) product.getQuantity())
                 .putString(FirebaseAnalytics.Param.ITEM_ID, product.getSku())
                 .putString(FirebaseAnalytics.Param.ITEM_NAME, product.getName())
                 .putString(FirebaseAnalytics.Param.ITEM_CATEGORY, product.getCategory())
@@ -385,6 +383,13 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         PickyBundle putDouble(String key, Double value) {
             if (value != null) {
                 bundle.putDouble(key, value);
+            }
+            return this;
+        }
+
+        PickyBundle putLong(String key, Long value) {
+            if (value != null) {
+                bundle.putLong(key, value);
             }
             return this;
         }
