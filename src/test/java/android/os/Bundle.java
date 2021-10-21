@@ -22,6 +22,10 @@ public class Bundle {
         map.put(key, value);
     }
 
+    public void putLong(String key, long value) { map.put(key, value); }
+
+    public void putInt(String key, int value) { map.put(key, value); }
+
     public void putParcelableArray(String key, Parcelable[] value) {
         map.put(key, value);
     }
