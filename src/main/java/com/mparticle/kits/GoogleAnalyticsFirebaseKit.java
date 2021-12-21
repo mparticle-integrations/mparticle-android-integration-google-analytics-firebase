@@ -35,6 +35,10 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     final static String USER_ID_EMAIL_VALUE = "email";
     final static String USER_ID_MPID_VALUE = "mpid";
 
+    final static String CF_GA4COMMERCE_EVENT_TYPE = "GA4.CommerceEventType";
+    final static String CF_GA4_PAYMENT_TYPE = "GA4.PaymentType";
+    final static String CF_GA4_SHIPPING_TIER = "GA4.ShippingTier";
+
     private static String[] forbiddenPrefixes = new String[]{"google_", "firebase_", "ga_"};
     private static int eventMaxLength = 40;
     private static int userAttributeMaxLength = 24;
@@ -128,7 +132,23 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
                 eventName = FirebaseAnalytics.Event.SELECT_CONTENT;
                 break;
             case Product.CHECKOUT_OPTION:
-                eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
+                Map<String, List<String>> customFlags = commerceEvent.getCustomFlags();
+                if (customFlags != null && customFlags.containsKey(CF_GA4COMMERCE_EVENT_TYPE)) {
+                    String commerceEventType = customFlags.get(CF_GA4COMMERCE_EVENT_TYPE).get(0);
+                    if (commerceEventType == FirebaseAnalytics.Event.ADD_SHIPPING_INFO) {
+                        eventName = FirebaseAnalytics.Event.ADD_SHIPPING_INFO;
+                    } else if (commerceEventType == FirebaseAnalytics.Event.ADD_PAYMENT_INFO) {
+                        eventName = FirebaseAnalytics.Event.ADD_PAYMENT_INFO;
+                    } else {
+                        // TODO: SET_CHECKOUT_OPTION is deprecated, we should update our docs for Firebase.
+                        Logger.warning("You used an unsupported value for the custom flag 'GA4.CommerceEventType'. Please check your code. The event will be sent to Firebase with the deprecated SET_CHECKOUT_OPTION event type");
+                        eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
+                    }
+                } else {
+                    Logger.warning("Setting a CHECKOUT_OPTION now requires a custom flag of 'GA4.CommerceEventType'. Please review the mParticle documentation.");
+                    eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
+                }
+
                 break;
             case Product.DETAIL:
                 eventName = FirebaseAnalytics.Event.VIEW_ITEM;
@@ -209,6 +229,24 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
             Logger.info("Currency field required by Firebase was not set, defaulting to 'USD'");
             currency = "USD";
         }
+
+        // Google Analytics 4 introduces 2 new event types - add_shipping_info and add_payment_info
+        // each of these has an extra parameter that is optional to be included
+        Map<String, List<String>> customFlags = commerceEvent.getCustomFlags();
+        if (customFlags != null && customFlags.containsKey(CF_GA4COMMERCE_EVENT_TYPE)) {
+            // TODO: Will get 0 throw if the array is empty?
+            String commerceEventType = customFlags.get(CF_GA4COMMERCE_EVENT_TYPE).get(0);
+            if (commerceEventType == FirebaseAnalytics.Event.ADD_SHIPPING_INFO) {
+                if (customFlags.containsKey(CF_GA4_SHIPPING_TIER)) {
+                    // TODO: if the shipping tier is null/nil, what happens?
+                    pickyBundle.putString(FirebaseAnalytics.Param.SHIPPING_TIER, customFlags.get(CF_GA4_SHIPPING_TIER).get(0));
+                }
+            } else if (commerceEventType == FirebaseAnalytics.Event.ADD_PAYMENT_INFO) {
+                if (customFlags.containsKey(CF_GA4_PAYMENT_TYPE)) {
+                    pickyBundle.putString(FirebaseAnalytics.Param.PAYMENT_TYPE, customFlags.get(CF_GA4_PAYMENT_TYPE).get(0));
+                }
+            }
+        }
         return pickyBundle
                 .putString(FirebaseAnalytics.Param.CURRENCY, currency)
                 .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
@@ -235,6 +273,8 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     PickyBundle getTransactionAttributesBundle(CommerceEvent commerceEvent) {
         PickyBundle pickyBundle = new PickyBundle();
         TransactionAttributes transactionAttributes = commerceEvent.getTransactionAttributes();
+
+//        if
         if (commerceEvent.getTransactionAttributes() == null) {
             return pickyBundle;
         }

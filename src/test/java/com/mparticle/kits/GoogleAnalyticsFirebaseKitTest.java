@@ -31,6 +31,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Logger;
 
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
@@ -44,6 +45,8 @@ public class GoogleAnalyticsFirebaseKitTest {
     GoogleAnalyticsFirebaseKit kitInstance;
     FirebaseAnalytics firebaseSdk;
     Random random = new Random();
+    private static Logger LOGGER = Logger.getLogger("InfoLogging");
+
 
     @Before
     public void before() throws JSONException {
@@ -109,6 +112,42 @@ public class GoogleAnalyticsFirebaseKitTest {
         CommerceEvent event = new CommerceEvent.Builder(Promotion.CLICK, promotion).build();
         kitInstance.logEvent(event);
         assertEquals(0, firebaseSdk.getLoggedEvents().size());
+    }
+
+    @Test
+    public void testShippingInfoCommerceEvent() {
+        CommerceEvent event = new CommerceEvent.Builder(Product.CHECKOUT_OPTION, new Product.Builder("asdv", "asdv", 1.3).build())
+                .addCustomFlag("GA4.CommerceEventType", "add_shipping_info")
+                .addCustomFlag("GA4.ShippingTier", "overnight")
+                .build();
+        kitInstance.logEvent(event);
+
+        assertEquals(1, firebaseSdk.getLoggedEvents().size());
+        assertEquals("add_shipping_info", firebaseSdk.getLoggedEvents().get(0).getKey());
+        assertEquals("overnight", firebaseSdk.getLoggedEvents().get(0).getValue().getString("shipping_tier"));
+    }
+
+    @Test
+    public void testPaymentInfoCommerceEvent() {
+        CommerceEvent event = new CommerceEvent.Builder(Product.CHECKOUT_OPTION, new Product.Builder("asdv", "asdv", 1.3).build())
+                .addCustomFlag("GA4.CommerceEventType", "add_payment_info")
+                .addCustomFlag("GA4.PaymentType", "visa")
+                .build();
+        kitInstance.logEvent(event);
+
+        assertEquals(1, firebaseSdk.getLoggedEvents().size());
+        assertEquals("add_payment_info", firebaseSdk.getLoggedEvents().get(0).getKey());
+        assertEquals("visa", firebaseSdk.getLoggedEvents().get(0).getValue().getString("payment_type"));
+    }
+
+    @Test
+    public void testCheckoutOptionCommerceEvent() {
+        CommerceEvent event = new CommerceEvent.Builder(Product.CHECKOUT_OPTION, new Product.Builder("asdv", "asdv", 1.3).build())
+                .build();
+        kitInstance.logEvent(event);
+
+        assertEquals(1, firebaseSdk.getLoggedEvents().size());
+        assertEquals("set_checkout_option", firebaseSdk.getLoggedEvents().get(0).getKey());
     }
 
     @Test
