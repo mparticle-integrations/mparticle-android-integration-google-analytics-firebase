@@ -117,7 +117,7 @@ public class GoogleAnalyticsFirebaseKitTest {
     @Test
     public void testShippingInfoCommerceEvent() {
         CommerceEvent event = new CommerceEvent.Builder(Product.CHECKOUT_OPTION, new Product.Builder("asdv", "asdv", 1.3).build())
-                .addCustomFlag("GA4.CommerceEventType", "add_shipping_info")
+                .addCustomFlag("GA4.CommerceEventType", FirebaseAnalytics.Event.ADD_SHIPPING_INFO)
                 .addCustomFlag("GA4.ShippingTier", "overnight")
                 .build();
         kitInstance.logEvent(event);
@@ -130,7 +130,7 @@ public class GoogleAnalyticsFirebaseKitTest {
     @Test
     public void testPaymentInfoCommerceEvent() {
         CommerceEvent event = new CommerceEvent.Builder(Product.CHECKOUT_OPTION, new Product.Builder("asdv", "asdv", 1.3).build())
-                .addCustomFlag("GA4.CommerceEventType", "add_payment_info")
+                .addCustomFlag("GA4.CommerceEventType", FirebaseAnalytics.Event.ADD_PAYMENT_INFO)
                 .addCustomFlag("GA4.PaymentType", "visa")
                 .build();
         kitInstance.logEvent(event);
