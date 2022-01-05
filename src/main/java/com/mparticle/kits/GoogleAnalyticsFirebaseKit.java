@@ -234,20 +234,20 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         Map<String, List<String>> customFlags = commerceEvent.getCustomFlags();
         if (customFlags != null && customFlags.containsKey(CF_GA4COMMERCE_EVENT_TYPE)) {
             List<String> commerceEventTypeList = customFlags.get(CF_GA4COMMERCE_EVENT_TYPE);
-                if (commerceEventTypeList != null && commerceEventTypeList.size() > 0) {
-                    String commerceEventType = commerceEventTypeList.get(0);
-                    if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_SHIPPING_INFO.toString())) {
-                        List<String> shippingTier = customFlags.get(CF_GA4_SHIPPING_TIER);
-                        if (shippingTier !=null && shippingTier.size() > 0) {
-                            pickyBundle.putString(FirebaseAnalytics.Param.SHIPPING_TIER, shippingTier.get(0));
-                        }
-                    } else if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_PAYMENT_INFO.toString())) {
-                        List<String> paymentType = customFlags.get(CF_GA4_PAYMENT_TYPE);
-                        if (paymentType !=null && paymentType.size() > 0) {
-                            pickyBundle.putString(FirebaseAnalytics.Param.PAYMENT_TYPE, paymentType.get(0));
-                        }
+            if (commerceEventTypeList != null && commerceEventTypeList.size() > 0) {
+                String commerceEventType = commerceEventTypeList.get(0);
+                if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_SHIPPING_INFO.toString())) {
+                    List<String> shippingTier = customFlags.get(CF_GA4_SHIPPING_TIER);
+                    if (shippingTier != null && shippingTier.size() > 0) {
+                        pickyBundle.putString(FirebaseAnalytics.Param.SHIPPING_TIER, shippingTier.get(0));
+                    }
+                } else if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_PAYMENT_INFO.toString())) {
+                    List<String> paymentType = customFlags.get(CF_GA4_PAYMENT_TYPE);
+                    if (paymentType != null && paymentType.size() > 0) {
+                        pickyBundle.putString(FirebaseAnalytics.Param.PAYMENT_TYPE, paymentType.get(0));
                     }
                 }
+            }
         }
         return pickyBundle
                 .putString(FirebaseAnalytics.Param.CURRENCY, currency)
