@@ -134,17 +134,23 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
             case Product.CHECKOUT_OPTION:
                 Map<String, List<String>> customFlags = commerceEvent.getCustomFlags();
                 if (customFlags != null && customFlags.containsKey(CF_GA4COMMERCE_EVENT_TYPE)) {
-                    String commerceEventType = customFlags.get(CF_GA4COMMERCE_EVENT_TYPE).get(0);
-                    if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_SHIPPING_INFO.toString())) {
-                        eventName = FirebaseAnalytics.Event.ADD_SHIPPING_INFO;
-                    } else if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_PAYMENT_INFO.toString())) {
-                        eventName = FirebaseAnalytics.Event.ADD_PAYMENT_INFO;
+                    List<String> commerceEventTypes = customFlags.get(CF_GA4COMMERCE_EVENT_TYPE);
+                    if (!commerceEventTypes.isEmpty()) {
+                        String commerceEventType = commerceEventTypes.get(0);
+                        if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_SHIPPING_INFO.toString())) {
+                            eventName = FirebaseAnalytics.Event.ADD_SHIPPING_INFO;
+                        } else if (commerceEventType.equals(FirebaseAnalytics.Event.ADD_PAYMENT_INFO.toString())) {
+                            eventName = FirebaseAnalytics.Event.ADD_PAYMENT_INFO;
+                        } else {
+                            Logger.warning("You used an unsupported value for the custom flag 'GA4.CommerceEventType'. Please review the mParticle documentation. The event will be sent to Firebase with the deprecated SET_CHECKOUT_OPTION event type.");
+                            eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
+                        }
                     } else {
-                        Logger.warning("You used an unsupported value for the custom flag 'GA4.CommerceEventType'. Please check your code. The event will be sent to Firebase with the deprecated SET_CHECKOUT_OPTION event type");
+                        Logger.warning("Setting a CHECKOUT_OPTION now requires a custom flag of 'GA4.CommerceEventType'. Please review the mParticle documentation.  The event will be sent to Firebase with the deprecated SET_CHECKOUT_OPTION event type.");
                         eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
                     }
                 } else {
-                    Logger.warning("Setting a CHECKOUT_OPTION now requires a custom flag of 'GA4.CommerceEventType'. Please review the mParticle documentation.");
+                    Logger.warning("Setting a CHECKOUT_OPTION now requires a custom flag of 'GA4.CommerceEventType'. Please review the mParticle documentation.  The event will be sent to Firebase with the deprecated SET_CHECKOUT_OPTION event type.");
                     eventName = FirebaseAnalytics.Event.SET_CHECKOUT_OPTION;
                 }
 
