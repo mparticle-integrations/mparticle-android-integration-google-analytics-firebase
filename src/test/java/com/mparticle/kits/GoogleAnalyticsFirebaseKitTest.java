@@ -45,8 +45,6 @@ public class GoogleAnalyticsFirebaseKitTest {
     GoogleAnalyticsFirebaseKit kitInstance;
     FirebaseAnalytics firebaseSdk;
     Random random = new Random();
-    private static Logger LOGGER = Logger.getLogger("InfoLogging");
-
 
     @Before
     public void before() throws JSONException {
