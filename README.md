@@ -1,3 +1,5 @@
+> Google launched Google Analytics 4, a new way of analyzing iOS, Android, and Web data together.  Google encourages all customers to [upgrade their Firebase instances](https://support.google.com/analytics/answer/9379599) so that Firebase data flows to Google Analytics 4.  mParticle encourages all customers to also upgrade to the [new mParticle Android Firebase GA4 kit](https://github.com/mparticle-integrations/mparticle-android-integration-google-analytics-firebase-ga4), which tightens our Firebase and Web GA4 integration. This repository page you are on will continue to work, but all new code changes and bug fixes will be made in our new Firebase GA4 kit.  Please see the [mParticle GA4](https://docs.mparticle.com/integrations/google-analytics-4/event) docs for more information on upgrading.
+
 ## Google Analytics for Firebase Kit Integration
 
 This repository contains the [Google Analytics for Firebase](https://firebase.google.com/docs/analytics/android/start) integration for the [mParticle Android SDK](https://github.com/mParticle/mparticle-android-sdk).
