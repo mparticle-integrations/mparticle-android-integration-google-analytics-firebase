@@ -14,7 +14,6 @@ import com.mparticle.commerce.Product;
 import com.mparticle.commerce.Promotion;
 import com.mparticle.commerce.TransactionAttributes;
 import com.mparticle.identity.IdentityApi;
-import com.mparticle.internal.BackgroundTaskHandler;
 import com.mparticle.internal.CoreCallbacks;
 import com.mparticle.testutils.TestingUtils;
 
@@ -52,10 +51,7 @@ public class GoogleAnalyticsFirebaseKitTest {
         kitInstance = new GoogleAnalyticsFirebaseKit();
         MParticle.setInstance(Mockito.mock(MParticle.class));
         Mockito.when(MParticle.getInstance().Identity()).thenReturn(Mockito.mock(IdentityApi.class));
-        KitManagerImpl kitManager = new KitManagerImpl(Mockito.mock(Context.class), null, emptyCoreCallbacks,  new BackgroundTaskHandler() {
-            public void executeNetworkRequest(Runnable runnable) { }
-
-        }, null);
+        KitManagerImpl kitManager = new KitManagerImpl(Mockito.mock(Context.class), null, emptyCoreCallbacks, null);
         kitInstance.setKitManager(kitManager);
         kitInstance.setConfiguration(KitConfiguration.createKitConfiguration(new JSONObject().put("id", "-1")));
         kitInstance.onKitCreate(new HashMap<String, String>(), Mockito.mock(Context.class));
@@ -251,11 +247,6 @@ public class GoogleAnalyticsFirebaseKitTest {
         @Override
         public String getLaunchAction() {
             return null;
-        }
-
-        @Override
-        public void replayAndDisableQueue() {
-            
         }
 
         @Override
