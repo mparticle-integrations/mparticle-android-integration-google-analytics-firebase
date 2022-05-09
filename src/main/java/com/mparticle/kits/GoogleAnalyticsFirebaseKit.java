@@ -370,7 +370,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         return name;
     }
 
-    class PickyBundle {
+    static class PickyBundle {
         private Bundle bundle = new Bundle();
 
         PickyBundle putString(String key, String value) {
