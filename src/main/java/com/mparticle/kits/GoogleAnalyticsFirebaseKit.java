@@ -268,7 +268,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
     }
 
     @Override
-    public void onIncrementUserAttribute(String key, int incrementedBy, String value, FilteredMParticleUser filteredMParticleUser) {
+    public void onIncrementUserAttribute(String key, Number incrementedBy, String value, FilteredMParticleUser filteredMParticleUser) {
         FirebaseAnalytics.getInstance(getContext()).setUserProperty(standardizeName(key, false), value);
     }
 
