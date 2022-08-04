@@ -346,7 +346,7 @@ public class GoogleAnalyticsFirebaseKit extends KitIntegration implements KitInt
         if (name == null) {
             return null;
         }
-        name = name.replaceAll("[^a-zA-Z0-9_\\s]", "");
+        name = name.replaceAll("[^a-zA-Z0-9_\\s]", " ");
         name = name.replaceAll("[\\s]+", "_");
 
         for(String forbiddenPrefix: forbiddenPrefixes) {
