@@ -171,11 +171,19 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             Logger.info(CURRENCY_FIELD_NOT_SET)
             currency = USD
         }
-        return pickyBundle
+        commerceEvent.customAttributes?.let { customAttributes ->
+            for (attributes in customAttributes) {
+                pickyBundle.putString(attributes.key, attributes.value.toString())
+            }
+        }
+
+        pickyBundle
             .putString(FirebaseAnalytics.Param.CURRENCY, currency)
             .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
             .putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.checkoutOptions)
             .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.checkoutStep)
+
+        return pickyBundle
     }
 
     private fun getProductBundles(commerceEvent: CommerceEvent): Array<Bundle?> {
