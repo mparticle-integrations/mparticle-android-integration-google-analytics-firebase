@@ -48,7 +48,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         return listOf(ReportingMessage.fromEvent(this, mpEvent))
     }
 
-    override fun logScreen(s: String, map: Map<String, String>): List<ReportingMessage> {
+    override fun logScreen(s: String, map: Map<String, String>?): List<ReportingMessage> {
         val activity = currentActivity.get()
         if (activity != null) {
             FirebaseAnalytics.getInstance(context)
@@ -100,6 +100,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
+        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
     }
 
     override fun onLoginCompleted(
@@ -107,6 +108,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
+        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
     }
 
     override fun onLogoutCompleted(
@@ -121,6 +123,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
+        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
     }
 
     override fun onUserIdentified(mParticleUser: MParticleUser) {}
@@ -140,7 +143,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         }
     }
 
-    fun getFirebaseEventName(event: MPEvent): String? {
+    private fun getFirebaseEventName(event: MPEvent): String? {
         if (event.eventType == EventType.Search) {
             return FirebaseAnalytics.Event.SEARCH
         }
@@ -149,7 +152,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         } else standardizeName(event.eventName, true)
     }
 
-    fun toBundle(mapIn: Map<String, String>?): Bundle {
+    private fun toBundle(mapIn: Map<String, String>?): Bundle {
         var map = mapIn
         val bundle = Bundle()
         map = standardizeAttributes(map, true)
@@ -161,7 +164,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         return bundle
     }
 
-    fun getCommerceEventBundle(commerceEvent: CommerceEvent): PickyBundle {
+    private fun getCommerceEventBundle(commerceEvent: CommerceEvent): PickyBundle {
         val pickyBundle = getTransactionAttributesBundle(commerceEvent)
         var currency = commerceEvent.currency
         if (currency == null) {
@@ -175,7 +178,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.checkoutStep)
     }
 
-    fun getProductBundles(commerceEvent: CommerceEvent): Array<Bundle?> {
+    private fun getProductBundles(commerceEvent: CommerceEvent): Array<Bundle?> {
         val products = commerceEvent.products
         if (products != null) {
             val bundles = arrayOfNulls<Bundle>(products.size)
@@ -191,7 +194,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         return arrayOfNulls(0)
     }
 
-    fun getTransactionAttributesBundle(commerceEvent: CommerceEvent): PickyBundle {
+    private fun getTransactionAttributesBundle(commerceEvent: CommerceEvent): PickyBundle {
         val pickyBundle = PickyBundle()
         val transactionAttributes = commerceEvent.transactionAttributes
         return if (commerceEvent.transactionAttributes == null) {
@@ -219,7 +222,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             )
     }
 
-    fun getBundle(product: Product): PickyBundle {
+    private fun getBundle(product: Product): PickyBundle {
         return PickyBundle()
             .putLong(FirebaseAnalytics.Param.QUANTITY, product.quantity.toLong())
             .putString(FirebaseAnalytics.Param.ITEM_ID, product.sku)
@@ -285,8 +288,8 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     override fun onSetAllUserAttributes(
         userAttributes: Map<String, String>,
-        userAttributeLists: Map<String, List<String>>,
-        filteredMParticleUser: FilteredMParticleUser
+        userAttributeLists: Map<String, List<String>>?,
+        filteredMParticleUser: FilteredMParticleUser?
     ) {
         var userAttributes: Map<String, String>? = userAttributes
         userAttributes = standardizeAttributes(userAttributes, false)
