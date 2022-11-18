@@ -6,6 +6,7 @@ import com.google.firebase.analytics.FirebaseAnalytics
 import com.mparticle.MPEvent
 import com.mparticle.MParticle
 import com.mparticle.MParticle.EventType
+import com.mparticle.UserAttributeListener
 import com.mparticle.commerce.CommerceEvent
 import com.mparticle.commerce.Product
 import com.mparticle.consent.ConsentState
@@ -100,7 +101,14 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
-        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
+        try {
+            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                onSetAllUserAttributes(userAttributes, null,null)
+            })
+        } catch (e: Exception) {
+            Logger.warning(e, "Unable to fetch User Attributes")
+        }
     }
 
     override fun onLoginCompleted(
@@ -108,7 +116,14 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
-        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
+        try {
+            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                onSetAllUserAttributes(userAttributes, null,null)
+            })
+        } catch (e: Exception) {
+            Logger.warning(e, "Unable to fetch User Attributes")
+        }
     }
 
     override fun onLogoutCompleted(
@@ -123,7 +138,14 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         filteredIdentityApiRequest: FilteredIdentityApiRequest
     ) {
         setUserId(mParticleUser)
-        onSetAllUserAttributes(mParticleUser.userAttributes as Map<String, String>, null,null)
+        try {
+            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                onSetAllUserAttributes(userAttributes, null,null)
+            })
+        } catch (e: Exception) {
+            Logger.warning(e, "Unable to fetch User Attributes")
+        }
     }
 
     override fun onUserIdentified(mParticleUser: MParticleUser) {}
