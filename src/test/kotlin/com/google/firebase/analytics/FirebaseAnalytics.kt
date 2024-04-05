@@ -9,6 +9,7 @@ import android.os.Bundle
 class FirebaseAnalytics {
     var loggedEvents: LinkedList<Map.Entry<String, Bundle>> = LinkedList()
     var currentScreenName: String? = null
+    var consentStateMap:MutableMap<Any, Any> = mutableMapOf()
 
 
     fun logEvent(key: String, bundle: Bundle) {
@@ -17,6 +18,15 @@ class FirebaseAnalytics {
 
     fun setCurrentScreen(currentActivity: Activity?, screenName: String?, classOverride: String?) {
         currentScreenName = screenName
+    }
+
+    fun setConsent(var1: MutableMap<Any, Any>) {
+        consentStateMap.putAll(var1)
+    }
+
+    fun getConsentState()
+            : MutableMap<Any, Any> {
+        return consentStateMap
     }
 
     fun setUserProperty(key: String?, value: String?) {}
