@@ -11,7 +11,10 @@ class FirebaseAnalytics {
     var currentScreenName: String? = null
     var consentStateMap:MutableMap<Any, Any> = mutableMapOf()
 
-
+    object Event {
+        const val ADD_PAYMENT_INFO = "add_payment_info"
+        const val ADD_SHIPPING_INFO = "add_shipping_info"
+    }
     fun logEvent(key: String, bundle: Bundle) {
         loggedEvents.add(SimpleEntry(key, bundle))
     }

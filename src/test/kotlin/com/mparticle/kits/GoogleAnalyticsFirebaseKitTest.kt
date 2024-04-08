@@ -660,6 +660,72 @@ class GoogleAnalyticsFirebaseKitTest {
         Assert.assertEquals(emptyMap<String, String>(), result)
     }
 
+    @Test
+    fun testShippingInfoCommerceEvent() {
+        val event = CommerceEvent.Builder(
+            Product.CHECKOUT_OPTION,
+            Product.Builder("asdv", "asdv", 1.3).build()
+        )
+            .addCustomFlag(
+                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+            )
+            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_SHIPPING_TIER, "overnight")
+            .build()
+        kitInstance.logEvent(event)
+        TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+        TestCase.assertEquals("add_shipping_info", firebaseSdk.loggedEvents[0].key)
+        TestCase.assertEquals(
+            "overnight",
+            firebaseSdk.loggedEvents[0].value.getString("shipping_tier")
+        )
+    }
+
+    @Test
+    fun testPaymentInfoCommerceEvent() {
+        val commerceCustomAttributes = mapOf(
+            "event::country" to "US"
+        )
+        val event = CommerceEvent.Builder(
+            Product.CHECKOUT_OPTION,
+            Product.Builder("asdv", "asdv", 1.3).build()
+        )
+            .addCustomFlag(
+                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+            )
+            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_PAYMENT_TYPE, "visa")
+            .build()
+        event.customAttributes = commerceCustomAttributes
+        kitInstance.logEvent(event)
+        TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+        TestCase.assertEquals("add_payment_info", firebaseSdk.loggedEvents[0].key)
+        TestCase.assertEquals("visa", firebaseSdk.loggedEvents[0].value.getString("payment_type"))
+        TestCase.assertEquals("US", firebaseSdk.loggedEvents[0].value.getString("event::country"))
+    }
+
+    @Test
+    fun testCheckoutOptionCommerceEvent() {
+        val customEventTypes = arrayOf(
+            FirebaseAnalytics.Event.ADD_PAYMENT_INFO,
+            FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+        )
+        for (customEventType in customEventTypes) {
+            val event = CommerceEvent.Builder(
+                Product.CHECKOUT_OPTION,
+                Product.Builder("asdv", "asdv", 1.3).build()
+            )
+                .addCustomFlag(
+                    GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                    customEventType
+                )
+                .build()
+            kitInstance.logEvent(event)
+            TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+            TestCase.assertEquals(customEventType, firebaseSdk.loggedEvents[0].key)
+            firebaseSdk.clearLoggedEvents()
+        }
+    }
 
     @Test
     fun testNameStandardization() {
