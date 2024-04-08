@@ -96,8 +96,35 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             Product.REFUND -> FirebaseAnalytics.Event.REFUND
             Product.REMOVE_FROM_CART -> FirebaseAnalytics.Event.REMOVE_FROM_CART
             Product.CLICK -> FirebaseAnalytics.Event.SELECT_CONTENT
-            //Commenting out the following line as FirebaseAnalytics.Event.SET_CHECKOUT_OPTION is deprecated.
-        //    Product.CHECKOUT_OPTION ->  FirebaseAnalytics.Event.SET_CHECKOUT_OPTION
+            Product.CHECKOUT_OPTION -> {
+                val warningMessage = WARNING_MESSAGE
+                val customFlags = commerceEvent.customFlags
+                if ((customFlags != null) && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)
+                ) {
+                    val commerceEventTypes =
+                        customFlags[CF_COMMERCE_EVENT_TYPE]
+                    if (!commerceEventTypes.isNullOrEmpty()) {
+                        when (commerceEventTypes[0]) {
+                            FirebaseAnalytics.Event.ADD_SHIPPING_INFO -> {
+                                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+                            }
+                            FirebaseAnalytics.Event.ADD_PAYMENT_INFO -> {
+                                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+                            }
+                            else -> {
+                                Logger.warning(warningMessage)
+                                return emptyList()
+                            }
+                        }
+                    } else {
+                        Logger.warning(warningMessage)
+                        return emptyList()
+                    }
+                } else {
+                    Logger.warning(warningMessage)
+                    return emptyList()
+                }
+            }
             Product.DETAIL -> FirebaseAnalytics.Event.VIEW_ITEM
             else -> return emptyList()
         }
@@ -207,13 +234,31 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                 pickyBundle.putString(attributes.key, attributes.value.toString())
             }
         }
+        val customFlags = commerceEvent.customFlags
+        if (customFlags != null && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)) {
+            val commerceEventTypeList = customFlags[CF_COMMERCE_EVENT_TYPE]
+            if (!commerceEventTypeList.isNullOrEmpty()) {
+                val commerceEventType = commerceEventTypeList[0]
+                if (commerceEventType == FirebaseAnalytics.Event.ADD_SHIPPING_INFO) {
+                    val shippingTier = customFlags[CF_SHIPPING_TIER]
+                    if (!shippingTier.isNullOrEmpty()) {
+                        pickyBundle.putString(
+                            FirebaseAnalytics.Param.SHIPPING_TIER,
+                            shippingTier[0]
+                        )
+                    }
+                } else if (commerceEventType == FirebaseAnalytics.Event.ADD_PAYMENT_INFO) {
+                    val paymentType = customFlags[CF_PAYMENT_TYPE]
+                    if (!paymentType.isNullOrEmpty()) {
+                        pickyBundle.putString(FirebaseAnalytics.Param.PAYMENT_TYPE, paymentType[0])
+                    }
+                }
+            }
+        }
 
         pickyBundle
             .putString(FirebaseAnalytics.Param.CURRENCY, currency)
             .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
-        //Commenting out the following line as FirebaseAnalytics.Event.SET_CHECKOUT_OPTION && FirebaseAnalytics.Event.CHECKOUT_PROGRESS is deprecated.
-           //.putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.checkoutOptions)
-           // .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.checkoutStep)
 
         return pickyBundle
     }
@@ -562,6 +607,11 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         const val USER_ID_MPID_VALUE = "mpid"
         private val forbiddenPrefixes = arrayOf("google_", "firebase_", "ga_")
         private const val CURRENCY_FIELD_NOT_SET = "Currency field required by Firebase was not set, defaulting to 'USD'"
+        const val CF_COMMERCE_EVENT_TYPE = "Firebase.CommerceEventType"
+        const val CF_PAYMENT_TYPE = "Firebase.PaymentType"
+        const val CF_SHIPPING_TIER = "Firebase.ShippingTier"
+        const val WARNING_MESSAGE =
+            "Firebase no longer supports CHECKOUT_OPTION. To specify a different eventName, add CF_COMMERCE_EVENT_TYPE to your customFlags with a valid value"
         private const val USD = "USD"
         private const val eventMaxLength = 40
         private const val userAttributeMaxLength = 24
