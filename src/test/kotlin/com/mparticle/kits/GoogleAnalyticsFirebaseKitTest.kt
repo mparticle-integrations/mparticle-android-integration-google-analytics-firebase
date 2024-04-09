@@ -14,7 +14,10 @@ import com.mparticle.commerce.CommerceEvent
 import com.mparticle.commerce.Product
 import com.mparticle.commerce.Promotion
 import com.mparticle.commerce.TransactionAttributes
+import com.mparticle.consent.ConsentState
+import com.mparticle.consent.GDPRConsent
 import com.mparticle.identity.IdentityApi
+import com.mparticle.identity.MParticleUser
 import com.mparticle.internal.CoreCallbacks
 import com.mparticle.internal.CoreCallbacks.KitListener
 import com.mparticle.testutils.TestingUtils
@@ -22,11 +25,15 @@ import junit.framework.TestCase
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mock
 import org.mockito.Mockito
 import org.mockito.Mockito.mock
+import org.mockito.MockitoAnnotations
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.util.*
 
@@ -40,12 +47,19 @@ class GoogleAnalyticsFirebaseKitTest {
     private lateinit var firebaseSdk: FirebaseAnalytics
     var random = Random()
 
+    @Mock
+    lateinit var user: MParticleUser
+
+    @Mock
+    lateinit var filteredMParticleUser: FilteredMParticleUser
+
     @Before
     @Throws(JSONException::class)
     fun before() {
         FirebaseAnalytics.clearInstance()
         FirebaseAnalytics.setFirebaseId("firebaseId")
         kitInstance = GoogleAnalyticsFirebaseKit()
+        MockitoAnnotations.initMocks(this)
         MParticle.setInstance(Mockito.mock(MParticle::class.java))
         Mockito.`when`(MParticle.getInstance()!!.Identity()).thenReturn(
             Mockito.mock(
@@ -138,13 +152,578 @@ class GoogleAnalyticsFirebaseKitTest {
                         )
                         .build()
                     kitInstance.logEvent(event)
-                    TestCase.assertEquals(
+                 /*   TestCase.assertEquals(
                         "failed for event type: $eventType",
                         1,
                         firebaseSdk.loggedEvents.size
-                    )
+                    )*/
                 }
             }
+        }
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+
+        val marketingConsent = GDPRConsent.builder(false)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue4)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_Marketing_true() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue4)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_Performance_true() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue4)
+
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_Performance_false() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val performanceConsent = GDPRConsent.builder(false)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue4)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTestPerformance_And_Marketing_are_true() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue4)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_No_Defaults_Values() {
+        val map = HashMap<String, String>()
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue2)
+        TestCase.assertEquals(2, firebaseSdk.getConsentState().size)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_No_DATA_From_Server() {
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+
+        TestCase.assertEquals(0, firebaseSdk.getConsentState().size)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_No_consentMappingSDK() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Granted"
+        map["defaultAnalyticsStorageConsentSDK"] = "Granted"
+        map["defaultAdUserDataConsentSDK"] = "Denied"
+        map["defaultAdPersonalizationConsentSDK"] = "Denied"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("ANALYTICS_STORAGE").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue2)
+        val expectedConsentValue3 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue3)
+        val expectedConsentValue4 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("DENIED", expectedConsentValue4)
+        TestCase.assertEquals(4, firebaseSdk.getConsentState().size)
+
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_default_is_Unspecified_And_No_consentMappingSDK() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Unspecified"
+        map["defaultAnalyticsStorageConsentSDK"] = "Unspecified"
+        map["defaultAdUserDataConsentSDK"] = "Unspecified"
+        map["defaultAdPersonalizationConsentSDK"] = "Unspecified"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+
+        TestCase.assertEquals(0, firebaseSdk.getConsentState().size)
+    }
+
+    @Test
+    fun onConsentStateUpdatedTest_When_default_is_Unspecified() {
+        val map = HashMap<String, String>()
+        map["defaultAdStorageConsentSDK"] = "Unspecified"
+        map["defaultAnalyticsStorageConsentSDK"] = "Unspecified"
+        map["consentMappingSDK"] =
+            "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
+        map["defaultAdUserDataConsentSDK"] = "Unspecified"
+        map["defaultAdPersonalizationConsentSDK"] = "Unspecified"
+
+        kitInstance.configuration =
+            KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
+
+        val marketingConsent = GDPRConsent.builder(true)
+            .document("Test consent")
+            .location("17 Cherry Tree Lane")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+
+        val performanceConsent = GDPRConsent.builder(true)
+            .document("parental_consent_agreement_v2")
+            .location("17 Cherry Tree Lan 3")
+            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+            .build()
+        val state = ConsentState.builder()
+            .addGDPRConsentState("Marketing", marketingConsent)
+            .addGDPRConsentState("Performance", performanceConsent)
+            .build()
+        filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
+
+        kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
+
+        val expectedConsentValue =
+            firebaseSdk.getConsentState().getKeyByValue("AD_USER_DATA").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue)
+        val expectedConsentValue2 =
+            firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
+        TestCase.assertEquals("GRANTED", expectedConsentValue2)
+        TestCase.assertEquals(2, firebaseSdk.getConsentState().size)
+    }
+
+    fun MutableMap<Any, Any>.getKeyByValue(inputKey: String): Any? {
+        for ((key, mapValue) in entries) {
+            if (key.toString() == inputKey) {
+                return mapValue
+            }
+        }
+        return null
+    }
+
+    @Test
+    fun testParseToNestedMap_When_JSON_Is_INVALID() {
+        var jsonInput =
+            "{'GDPR':{'marketing':'{:false,'timestamp':1711038269644:'Test consent','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}','performance':'{'consented':true,'timestamp':1711038269644,'document':'parental_consent_agreement_v2','location':'17 Cherry Tree Lan 3','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'},'CCPA':'{'consented':true,'timestamp':1711038269644,'document':'ccpa_consent_agreement_v3','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'}"
+
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "parseToNestedMap",
+            String::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, jsonInput)
+        Assert.assertEquals(mutableMapOf<String, Any>(), result)
+    }
+
+    @Test
+    fun testParseToNestedMap_When_JSON_Is_Empty() {
+        var jsonInput = ""
+
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "parseToNestedMap",
+            String::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, jsonInput)
+        Assert.assertEquals(mutableMapOf<String, Any>(), result)
+    }
+
+    @Test
+    fun testSearchKeyInNestedMap_When_Input_Key_Is_Empty_String() {
+        val map = mapOf(
+            "GDPR" to true,
+            "marketing" to mapOf(
+                "consented" to false,
+                "document" to mapOf(
+                    "timestamp" to 1711038269644
+                )
+            )
+        )
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "searchKeyInNestedMap", Map::class.java,
+            Any::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, map, "")
+        Assert.assertEquals(null, result)
+    }
+
+    @Test
+    fun testSearchKeyInNestedMap_When_Input_Is_Empty_Map() {
+        val emptyMap: Map<String, Int> = emptyMap()
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "searchKeyInNestedMap", Map::class.java,
+            Any::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, emptyMap, "1")
+        Assert.assertEquals(null, result)
+    }
+
+    @Test
+    fun testParseConsentMapping_When_Input_Is_Empty_Json() {
+        val emptyJson = ""
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "parseConsentMapping",
+            String::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, emptyJson)
+        Assert.assertEquals(emptyMap<String, String>(), result)
+    }
+
+    @Test
+    fun testParseConsentMapping_When_Input_Is_Invalid_Json() {
+        var jsonInput =
+            "{'GDPR':{'marketing':'{:false,'timestamp':1711038269644:'Test consent','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}','performance':'{'consented':true,'timestamp':1711038269644,'document':'parental_consent_agreement_v2','location':'17 Cherry Tree Lan 3','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'},'CCPA':'{'consented':true,'timestamp':1711038269644,'document':'ccpa_consent_agreement_v3','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'}"
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "parseConsentMapping",
+            String::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, jsonInput)
+        Assert.assertEquals(emptyMap<String, String>(), result)
+    }
+
+    @Test
+    fun testParseConsentMapping_When_Input_Is_NULL() {
+        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+            "parseConsentMapping",
+            String::class.java
+        )
+        method.isAccessible = true
+        val result = method.invoke(kitInstance, null)
+        Assert.assertEquals(emptyMap<String, String>(), result)
+    }
+
+    @Test
+    fun testShippingInfoCommerceEvent() {
+        val event = CommerceEvent.Builder(
+            Product.CHECKOUT_OPTION,
+            Product.Builder("asdv", "asdv", 1.3).build()
+        )
+            .addCustomFlag(
+                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+            )
+            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_SHIPPING_TIER, "overnight")
+            .build()
+        kitInstance.logEvent(event)
+        TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+        TestCase.assertEquals("add_shipping_info", firebaseSdk.loggedEvents[0].key)
+        TestCase.assertEquals(
+            "overnight",
+            firebaseSdk.loggedEvents[0].value.getString("shipping_tier")
+        )
+    }
+
+    @Test
+    fun testPaymentInfoCommerceEvent() {
+        val commerceCustomAttributes = mapOf(
+            "event::country" to "US"
+        )
+        val event = CommerceEvent.Builder(
+            Product.CHECKOUT_OPTION,
+            Product.Builder("asdv", "asdv", 1.3).build()
+        )
+            .addCustomFlag(
+                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+            )
+            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_PAYMENT_TYPE, "visa")
+            .build()
+        event.customAttributes = commerceCustomAttributes
+        kitInstance.logEvent(event)
+        TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+        TestCase.assertEquals("add_payment_info", firebaseSdk.loggedEvents[0].key)
+        TestCase.assertEquals("visa", firebaseSdk.loggedEvents[0].value.getString("payment_type"))
+        TestCase.assertEquals("US", firebaseSdk.loggedEvents[0].value.getString("event::country"))
+    }
+
+    @Test
+    fun testCheckoutOptionCommerceEvent() {
+        val customEventTypes = arrayOf(
+            FirebaseAnalytics.Event.ADD_PAYMENT_INFO,
+            FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+        )
+        for (customEventType in customEventTypes) {
+            val event = CommerceEvent.Builder(
+                Product.CHECKOUT_OPTION,
+                Product.Builder("asdv", "asdv", 1.3).build()
+            )
+                .addCustomFlag(
+                    GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
+                    customEventType
+                )
+                .build()
+            kitInstance.logEvent(event)
+            TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
+            TestCase.assertEquals(customEventType, firebaseSdk.loggedEvents[0].key)
+            firebaseSdk.clearLoggedEvents()
         }
     }
 

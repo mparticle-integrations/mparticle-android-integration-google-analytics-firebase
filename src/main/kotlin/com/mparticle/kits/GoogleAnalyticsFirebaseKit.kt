@@ -14,7 +14,11 @@ import com.mparticle.identity.MParticleUser
 import com.mparticle.internal.Logger
 import com.mparticle.kits.KitIntegration.CommerceListener
 import com.mparticle.kits.KitIntegration.IdentityListener
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 import java.math.BigDecimal
+import java.util.EnumMap
 
 class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListener, IdentityListener,
     CommerceListener, KitIntegration.UserAttributeListener {
@@ -26,6 +30,10 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         context: Context
     ): List<ReportingMessage> {
         Logger.info("$name Kit relies on a functioning instance of Firebase Analytics. If your Firebase Analytics instance is not configured properly, this Kit will not work")
+        val userConsentState = currentUser?.consentState
+        userConsentState?.let {
+            setConsent(currentUser.consentState)
+        }
         return emptyList()
     }
 
@@ -88,7 +96,35 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             Product.REFUND -> FirebaseAnalytics.Event.REFUND
             Product.REMOVE_FROM_CART -> FirebaseAnalytics.Event.REMOVE_FROM_CART
             Product.CLICK -> FirebaseAnalytics.Event.SELECT_CONTENT
-            Product.CHECKOUT_OPTION ->  FirebaseAnalytics.Event.SET_CHECKOUT_OPTION
+            Product.CHECKOUT_OPTION -> {
+                val warningMessage = WARNING_MESSAGE
+                val customFlags = commerceEvent.customFlags
+                if ((customFlags != null) && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)
+                ) {
+                    val commerceEventTypes =
+                        customFlags[CF_COMMERCE_EVENT_TYPE]
+                    if (!commerceEventTypes.isNullOrEmpty()) {
+                        when (commerceEventTypes[0]) {
+                            FirebaseAnalytics.Event.ADD_SHIPPING_INFO -> {
+                                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+                            }
+                            FirebaseAnalytics.Event.ADD_PAYMENT_INFO -> {
+                                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+                            }
+                            else -> {
+                                Logger.warning(warningMessage)
+                                return emptyList()
+                            }
+                        }
+                    } else {
+                        Logger.warning(warningMessage)
+                        return emptyList()
+                    }
+                } else {
+                    Logger.warning(warningMessage)
+                    return emptyList()
+                }
+            }
             Product.DETAIL -> FirebaseAnalytics.Event.VIEW_ITEM
             else -> return emptyList()
         }
@@ -198,12 +234,31 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                 pickyBundle.putString(attributes.key, attributes.value.toString())
             }
         }
+        val customFlags = commerceEvent.customFlags
+        if (customFlags != null && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)) {
+            val commerceEventTypeList = customFlags[CF_COMMERCE_EVENT_TYPE]
+            if (!commerceEventTypeList.isNullOrEmpty()) {
+                val commerceEventType = commerceEventTypeList[0]
+                if (commerceEventType == FirebaseAnalytics.Event.ADD_SHIPPING_INFO) {
+                    val shippingTier = customFlags[CF_SHIPPING_TIER]
+                    if (!shippingTier.isNullOrEmpty()) {
+                        pickyBundle.putString(
+                            FirebaseAnalytics.Param.SHIPPING_TIER,
+                            shippingTier[0]
+                        )
+                    }
+                } else if (commerceEventType == FirebaseAnalytics.Event.ADD_PAYMENT_INFO) {
+                    val paymentType = customFlags[CF_PAYMENT_TYPE]
+                    if (!paymentType.isNullOrEmpty()) {
+                        pickyBundle.putString(FirebaseAnalytics.Param.PAYMENT_TYPE, paymentType[0])
+                    }
+                }
+            }
+        }
 
         pickyBundle
             .putString(FirebaseAnalytics.Param.CURRENCY, currency)
             .putBundleList(FirebaseAnalytics.Param.ITEMS, getProductBundles(commerceEvent))
-            .putString(FirebaseAnalytics.Event.SET_CHECKOUT_OPTION, commerceEvent.checkoutOptions)
-            .putInt(FirebaseAnalytics.Event.CHECKOUT_PROGRESS, commerceEvent.checkoutStep)
 
         return pickyBundle
     }
@@ -339,6 +394,120 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         consentState1: ConsentState,
         filteredMParticleUser: FilteredMParticleUser
     ) {
+        setConsent(consentState1)
+    }
+
+    private fun setConsent(consentState: ConsentState) {
+        val consentMap: MutableMap<FirebaseAnalytics.ConsentType, FirebaseAnalytics.ConsentStatus> =
+            EnumMap(
+                FirebaseAnalytics.ConsentType::class.java
+            )
+        googleConsentMapSettings.forEach { it ->
+            val mpConsentSetting = settings[it.value]
+            if (!mpConsentSetting.isNullOrEmpty()) {
+                if (mpConsentSetting == GoogleConsentValues.GRANTED.consentValue) {
+                    consentMap[it.key] = FirebaseAnalytics.ConsentStatus.GRANTED
+                } else if (mpConsentSetting == GoogleConsentValues.DENIED.consentValue) {
+                    consentMap[it.key] = FirebaseAnalytics.ConsentStatus.DENIED
+                }
+            }
+        }
+
+        val clientConsentSettings = parseToNestedMap(consentState.toString())
+
+        parseConsentMapping(settings[consentMappingSDK]).forEach { currentConsent ->
+
+            val isConsentAvailable =
+                searchKeyInNestedMap(clientConsentSettings, key = currentConsent.key)
+
+            if (isConsentAvailable != null) {
+                val isConsentGranted: Boolean =
+                    JSONObject(isConsentAvailable.toString()).opt("consented") as Boolean
+                val consentStatus =
+                    if (isConsentGranted) FirebaseAnalytics.ConsentStatus.GRANTED else FirebaseAnalytics.ConsentStatus.DENIED
+
+
+                when (currentConsent.value) {
+                    "ad_storage" -> consentMap[FirebaseAnalytics.ConsentType.AD_STORAGE] =
+                        consentStatus
+
+                    "ad_user_data" -> consentMap[FirebaseAnalytics.ConsentType.AD_USER_DATA] =
+                        consentStatus
+
+                    "ad_personalization" -> consentMap[FirebaseAnalytics.ConsentType.AD_PERSONALIZATION] =
+                        consentStatus
+
+                    "analytics_storage" -> consentMap[FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE] =
+                        consentStatus
+                }
+            }
+        }
+        if (consentMap.isNotEmpty()) {
+            FirebaseAnalytics.getInstance(context).setConsent(consentMap)
+        }
+    }
+    private fun parseConsentMapping(json: String?): Map<String, String> {
+        if (json.isNullOrEmpty()) {
+            return emptyMap()
+        }
+        val jsonWithFormat = json.replace("\\", "")
+
+        return try {
+            JSONArray(jsonWithFormat)
+                .let { jsonArray ->
+                    (0 until jsonArray.length())
+                        .associate {
+                            val jsonObject = jsonArray.getJSONObject(it)
+                            val map = jsonObject.getString("map")
+                            val value = jsonObject.getString("value")
+                            map to value
+                        }
+                }
+        } catch (jse: JSONException) {
+            Logger.warning(jse, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+            emptyMap()
+        }
+    }
+
+    private fun parseToNestedMap(jsonString: String): Map<String, Any> {
+        val topLevelMap = mutableMapOf<String, Any>()
+        try {
+            val jsonObject = JSONObject(jsonString)
+
+            for (key in jsonObject.keys()) {
+                val value = jsonObject.get(key)
+                if (value is JSONObject) {
+                    topLevelMap[key] = parseToNestedMap(value.toString())
+                } else {
+                    topLevelMap[key] = value
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(e, "The Google Firebase kit was unable to parse the user's ConsentState, consent may not be set correctly on the Google Analytics SDK")
+        }
+        return topLevelMap
+    }
+
+    private fun searchKeyInNestedMap(map: Map<*, *>, key: Any): Any? {
+        if (map.isNullOrEmpty()) {
+            return null
+        }
+        try {
+            for ((mapKey, mapValue) in map) {
+                if (mapKey.toString().equals(key.toString(), ignoreCase = true)) {
+                    return mapValue
+                }
+                if (mapValue is Map<*, *>) {
+                    val foundValue = searchKeyInNestedMap(mapValue, key)
+                    if (foundValue != null) {
+                        return foundValue
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(e, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+        }
+        return null
     }
 
     fun standardizeAttributes(
@@ -438,11 +607,30 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         const val USER_ID_MPID_VALUE = "mpid"
         private val forbiddenPrefixes = arrayOf("google_", "firebase_", "ga_")
         private const val CURRENCY_FIELD_NOT_SET = "Currency field required by Firebase was not set, defaulting to 'USD'"
+        const val CF_COMMERCE_EVENT_TYPE = "Firebase.CommerceEventType"
+        const val CF_PAYMENT_TYPE = "Firebase.PaymentType"
+        const val CF_SHIPPING_TIER = "Firebase.ShippingTier"
+        const val WARNING_MESSAGE =
+            "Firebase no longer supports CHECKOUT_OPTION. To specify a different eventName, add CF_COMMERCE_EVENT_TYPE to your customFlags with a valid value"
         private const val USD = "USD"
         private const val eventMaxLength = 40
         private const val userAttributeMaxLength = 24
         private const val eventValMaxLength = 100
         private const val userAttributeValMaxLength = 36
         private const val KIT_NAME = "Google Analytics for Firebase"
+
+        //Constants for Read Consent
+        private const val consentMappingSDK = "consentMappingSDK"
+        enum class GoogleConsentValues(val consentValue: String) {
+            GRANTED("Granted"),
+            DENIED("Denied")
+        }
+
+        val googleConsentMapSettings = mapOf(
+            FirebaseAnalytics.ConsentType.AD_STORAGE to "defaultAdStorageConsentSDK",
+            FirebaseAnalytics.ConsentType.AD_USER_DATA to "defaultAdUserDataConsentSDK",
+            FirebaseAnalytics.ConsentType.AD_PERSONALIZATION to "defaultAdPersonalizationConsentSDK",
+            FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE to "defaultAnalyticsStorageConsentSDK"
+        )
     }
 }
