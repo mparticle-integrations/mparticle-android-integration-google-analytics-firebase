@@ -339,6 +339,123 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         consentState1: ConsentState,
         filteredMParticleUser: FilteredMParticleUser
     ) {
+<<<<<<< Updated upstream
+=======
+        setConsent(consentState1)
+    }
+
+    private fun setConsent(consentState: ConsentState) {
+        val consentMap: MutableMap<FirebaseAnalytics.ConsentType, FirebaseAnalytics.ConsentStatus> =
+            EnumMap(
+                FirebaseAnalytics.ConsentType::class.java
+            )
+        googleConsentMapSettings.forEach { it ->
+            val mpConsentSetting = settings[it.value]
+            if (!mpConsentSetting.isNullOrEmpty()) {
+                if (mpConsentSetting == GoogleConsentValues.GRANTED.consentValue) {
+                    consentMap[it.key] = FirebaseAnalytics.ConsentStatus.GRANTED
+                } else if (mpConsentSetting == GoogleConsentValues.DENIED.consentValue) {
+                    consentMap[it.key] = FirebaseAnalytics.ConsentStatus.DENIED
+                }
+            }
+        }
+
+        val clientConsentSettings = parseToNestedMap(consentState.toString())
+
+        parseConsentMapping(settings[consentMappingSDK]).iterator().forEach { currentConsent ->
+
+            val isConsentAvailable =
+                searchKeyInNestedMap(clientConsentSettings, key = currentConsent.key)
+
+            if (isConsentAvailable != null) {
+                val isConsentGranted: Boolean =
+                    JSONObject(isConsentAvailable.toString()).opt("consented") as Boolean
+                val consentStatus =
+                    if (isConsentGranted) FirebaseAnalytics.ConsentStatus.GRANTED else FirebaseAnalytics.ConsentStatus.DENIED
+
+
+                when (currentConsent.value) {
+                    "ad_storage" -> consentMap[FirebaseAnalytics.ConsentType.AD_STORAGE] =
+                        consentStatus
+
+                    "ad_user_data" -> consentMap[FirebaseAnalytics.ConsentType.AD_USER_DATA] =
+                        consentStatus
+
+                    "ad_personalization" -> consentMap[FirebaseAnalytics.ConsentType.AD_PERSONALIZATION] =
+                        consentStatus
+
+                    "analytics_storage" -> consentMap[FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE] =
+                        consentStatus
+                }
+            }
+        }
+        if (consentMap.isNotEmpty()) {
+            FirebaseAnalytics.getInstance(context).setConsent(consentMap)
+        }
+    }
+    private fun parseConsentMapping(json: String?): Map<String, String> {
+        if (json.isNullOrEmpty()) {
+            return emptyMap()
+        }
+        val jsonWithFormat = json.replace("\\", "")
+
+        return try {
+            JSONArray(jsonWithFormat)
+                .let { jsonArray ->
+                    (0 until jsonArray.length())
+                        .associate {
+                            val jsonObject = jsonArray.getJSONObject(it)
+                            val map = jsonObject.getString("map")
+                            val value = jsonObject.getString("value")
+                            map to value
+                        }
+                }
+        } catch (jse: JSONException) {
+            Logger.warning(jse, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+            emptyMap()
+        }
+    }
+
+    private fun parseToNestedMap(jsonString: String): Map<String, Any> {
+        val topLevelMap = mutableMapOf<String, Any>()
+        try {
+            val jsonObject = JSONObject(jsonString)
+
+            for (key in jsonObject.keys()) {
+                val value = jsonObject.get(key)
+                if (value is JSONObject) {
+                    topLevelMap[key] = parseToNestedMap(value.toString())
+                } else {
+                    topLevelMap[key] = value
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(e, "The Google Firebase kit was unable to parse the user's ConsentState, consent may not be set correctly on the Google Analytics SDK")
+        }
+        return topLevelMap
+    }
+
+    private fun searchKeyInNestedMap(map: Map<*, *>, key: Any): Any? {
+        if (map.isNullOrEmpty()) {
+            return null
+        }
+        try {
+            for ((mapKey, mapValue) in map) {
+                if (mapKey.toString().equals(key.toString(), ignoreCase = true)) {
+                    return mapValue
+                }
+                if (mapValue is Map<*, *>) {
+                    val foundValue = searchKeyInNestedMap(mapValue, key)
+                    if (foundValue != null) {
+                        return foundValue
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Logger.error(e, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+        }
+        return null
+>>>>>>> Stashed changes
     }
 
     fun standardizeAttributes(
