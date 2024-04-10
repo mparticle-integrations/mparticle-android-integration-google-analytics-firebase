@@ -415,7 +415,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
         val clientConsentSettings = parseToNestedMap(consentState.toString())
 
-        parseConsentMapping(settings[consentMappingSDK]).forEach { currentConsent ->
+        parseConsentMapping(settings[consentMappingSDK]).iterator().forEach { currentConsent ->
 
             val isConsentAvailable =
                 searchKeyInNestedMap(clientConsentSettings, key = currentConsent.key)
