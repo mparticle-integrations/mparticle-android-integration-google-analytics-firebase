@@ -57,11 +57,16 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         return listOf(ReportingMessage.fromEvent(this, mpEvent))
     }
 
-    override fun logScreen(s: String, map: Map<String, String>?): List<ReportingMessage> {
+    override fun logScreen(
+        screenName: String,
+        screenAttributes: Map<String, String>?
+    ): List<ReportingMessage> {
+        val bundle = toBundle(screenAttributes)
+        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, standardizeName(screenName, true))
         val activity = currentActivity.get()
         if (activity != null) {
             FirebaseAnalytics.getInstance(context)
-                .setCurrentScreen(activity, standardizeName(s, true), null)
+                .logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
             return listOf(
                 ReportingMessage(
                     this,
