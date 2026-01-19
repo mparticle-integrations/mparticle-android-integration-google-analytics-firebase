@@ -37,6 +37,9 @@ apply plugin: 'com.mparticle.kit'
 
 android {
     namespace 'com.mparticle.kits.googleanalyticsfirebase'
+    buildFeatures {
+        buildConfig = true
+    }
     defaultConfig {
         minSdkVersion 21
     }
