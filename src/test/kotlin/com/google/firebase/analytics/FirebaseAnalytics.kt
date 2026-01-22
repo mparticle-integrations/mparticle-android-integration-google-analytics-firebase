@@ -1,25 +1,33 @@
 package com.google.firebase.analytics
 
-import java.util.LinkedList
-import java.util.AbstractMap.SimpleEntry
 import android.app.Activity
 import android.content.Context
 import android.os.Bundle
+import java.util.AbstractMap.SimpleEntry
+import java.util.LinkedList
 
 class FirebaseAnalytics {
     var loggedEvents: LinkedList<Map.Entry<String, Bundle>> = LinkedList()
     var currentScreenName: String? = null
-    var consentStateMap:MutableMap<Any, Any> = mutableMapOf()
+    var consentStateMap: MutableMap<Any, Any> = mutableMapOf()
 
     object Event {
         const val ADD_PAYMENT_INFO = "add_payment_info"
         const val ADD_SHIPPING_INFO = "add_shipping_info"
     }
-    fun logEvent(key: String, bundle: Bundle) {
+
+    fun logEvent(
+        key: String,
+        bundle: Bundle,
+    ) {
         loggedEvents.add(SimpleEntry(key, bundle))
     }
 
-    fun setCurrentScreen(currentActivity: Activity?, screenName: String?, classOverride: String?) {
+    fun setCurrentScreen(
+        currentActivity: Activity?,
+        screenName: String?,
+        classOverride: String?,
+    ) {
         currentScreenName = screenName
     }
 
@@ -27,12 +35,13 @@ class FirebaseAnalytics {
         consentStateMap.putAll(var1)
     }
 
-    fun getConsentState()
-            : MutableMap<Any, Any> {
-        return consentStateMap
-    }
+    fun getConsentState(): MutableMap<Any, Any> = consentStateMap
 
-    fun setUserProperty(key: String?, value: String?) {}
+    fun setUserProperty(
+        key: String?,
+        value: String?,
+    ) {}
+
     fun getLoggedEvents(): List<Map.Entry<String, Bundle>> = loggedEvents
 
     fun clearLoggedEvents() {

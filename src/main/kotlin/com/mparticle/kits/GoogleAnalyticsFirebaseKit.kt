@@ -20,16 +20,22 @@ import org.json.JSONObject
 import java.math.BigDecimal
 import java.util.EnumMap
 
-class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListener, IdentityListener,
-    CommerceListener, KitIntegration.UserAttributeListener {
+class GoogleAnalyticsFirebaseKit :
+    KitIntegration(),
+    KitIntegration.EventListener,
+    IdentityListener,
+    CommerceListener,
+    KitIntegration.UserAttributeListener {
     override fun getName(): String = KIT_NAME
 
     @Throws(IllegalArgumentException::class)
     public override fun onKitCreate(
         map: Map<String, String>,
-        context: Context
+        context: Context,
     ): List<ReportingMessage> {
-        Logger.info("$name Kit relies on a functioning instance of Firebase Analytics. If your Firebase Analytics instance is not configured properly, this Kit will not work")
+        Logger.info(
+            "$name Kit relies on a functioning instance of Firebase Analytics. If your Firebase Analytics instance is not configured properly, this Kit will not work",
+        )
         val userConsentState = currentUser?.consentState
         userConsentState?.let {
             setConsent(currentUser.consentState)
@@ -41,17 +47,21 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     override fun leaveBreadcrumb(s: String): List<ReportingMessage> = emptyList()
 
-    override fun logError(s: String, map: Map<String, String>): List<ReportingMessage> = emptyList()
+    override fun logError(
+        s: String,
+        map: Map<String, String>,
+    ): List<ReportingMessage> = emptyList()
 
     override fun logException(
         e: Exception,
         map: Map<String, String>,
-        s: String
+        s: String,
     ): List<ReportingMessage> = emptyList()
 
     override fun logEvent(mpEvent: MPEvent): List<ReportingMessage> {
         getFirebaseEventName(mpEvent)?.let {
-            FirebaseAnalytics.getInstance(context)
+            FirebaseAnalytics
+                .getInstance(context)
                 .logEvent(it, toBundle(mpEvent.customAttributeStrings))
         }
         return listOf(ReportingMessage.fromEvent(this, mpEvent))
@@ -59,21 +69,22 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     override fun logScreen(
         screenName: String,
-        screenAttributes: Map<String, String>?
+        screenAttributes: Map<String, String>?,
     ): List<ReportingMessage> {
         val bundle = toBundle(screenAttributes)
         bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, standardizeName(screenName, true))
         val activity = currentActivity.get()
         if (activity != null) {
-            FirebaseAnalytics.getInstance(context)
+            FirebaseAnalytics
+                .getInstance(context)
                 .logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle)
             return listOf(
                 ReportingMessage(
                     this,
                     ReportingMessage.MessageType.SCREEN_VIEW,
                     System.currentTimeMillis(),
-                    null
-                )
+                    null,
+                ),
             )
         }
         return emptyList()
@@ -83,7 +94,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         bigDecimal: BigDecimal,
         bigDecimal1: BigDecimal,
         s: String,
-        map: Map<String, String>
+        map: Map<String, String>,
     ): List<ReportingMessage> = emptyList()
 
     override fun logEvent(commerceEvent: CommerceEvent): List<ReportingMessage> {
@@ -91,62 +102,66 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         if (commerceEvent.productAction == null) {
             return emptyList()
         }
-        val bundle = getCommerceEventBundle(commerceEvent)
-            .bundle
-        val eventName: String = when (commerceEvent.productAction) {
-            Product.ADD_TO_CART -> FirebaseAnalytics.Event.ADD_TO_CART
-            Product.ADD_TO_WISHLIST -> FirebaseAnalytics.Event.ADD_TO_WISHLIST
-            Product.CHECKOUT -> FirebaseAnalytics.Event.BEGIN_CHECKOUT
-            Product.PURCHASE -> FirebaseAnalytics.Event.PURCHASE
-            Product.REFUND -> FirebaseAnalytics.Event.REFUND
-            Product.REMOVE_FROM_CART -> FirebaseAnalytics.Event.REMOVE_FROM_CART
-            Product.CLICK -> FirebaseAnalytics.Event.SELECT_CONTENT
-            Product.CHECKOUT_OPTION -> {
-                val warningMessage = WARNING_MESSAGE
-                val customFlags = commerceEvent.customFlags
-                if ((customFlags != null) && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)
-                ) {
-                    val commerceEventTypes =
-                        customFlags[CF_COMMERCE_EVENT_TYPE]
-                    if (!commerceEventTypes.isNullOrEmpty()) {
-                        when (commerceEventTypes[0]) {
-                            FirebaseAnalytics.Event.ADD_SHIPPING_INFO -> {
-                                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+        val bundle =
+            getCommerceEventBundle(commerceEvent)
+                .bundle
+        val eventName: String =
+            when (commerceEvent.productAction) {
+                Product.ADD_TO_CART -> FirebaseAnalytics.Event.ADD_TO_CART
+                Product.ADD_TO_WISHLIST -> FirebaseAnalytics.Event.ADD_TO_WISHLIST
+                Product.CHECKOUT -> FirebaseAnalytics.Event.BEGIN_CHECKOUT
+                Product.PURCHASE -> FirebaseAnalytics.Event.PURCHASE
+                Product.REFUND -> FirebaseAnalytics.Event.REFUND
+                Product.REMOVE_FROM_CART -> FirebaseAnalytics.Event.REMOVE_FROM_CART
+                Product.CLICK -> FirebaseAnalytics.Event.SELECT_CONTENT
+                Product.CHECKOUT_OPTION -> {
+                    val warningMessage = WARNING_MESSAGE
+                    val customFlags = commerceEvent.customFlags
+                    if ((customFlags != null) && customFlags.containsKey(CF_COMMERCE_EVENT_TYPE)
+                    ) {
+                        val commerceEventTypes =
+                            customFlags[CF_COMMERCE_EVENT_TYPE]
+                        if (!commerceEventTypes.isNullOrEmpty()) {
+                            when (commerceEventTypes[0]) {
+                                FirebaseAnalytics.Event.ADD_SHIPPING_INFO -> {
+                                    FirebaseAnalytics.Event.ADD_SHIPPING_INFO
+                                }
+                                FirebaseAnalytics.Event.ADD_PAYMENT_INFO -> {
+                                    FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+                                }
+                                else -> {
+                                    Logger.warning(warningMessage)
+                                    return emptyList()
+                                }
                             }
-                            FirebaseAnalytics.Event.ADD_PAYMENT_INFO -> {
-                                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
-                            }
-                            else -> {
-                                Logger.warning(warningMessage)
-                                return emptyList()
-                            }
+                        } else {
+                            Logger.warning(warningMessage)
+                            return emptyList()
                         }
                     } else {
                         Logger.warning(warningMessage)
                         return emptyList()
                     }
-                } else {
-                    Logger.warning(warningMessage)
-                    return emptyList()
                 }
+                Product.DETAIL -> FirebaseAnalytics.Event.VIEW_ITEM
+                else -> return emptyList()
             }
-            Product.DETAIL -> FirebaseAnalytics.Event.VIEW_ITEM
-            else -> return emptyList()
-        }
         instance.logEvent(eventName, bundle)
         return listOf(ReportingMessage.fromEvent(this, commerceEvent))
     }
 
     override fun onIdentifyCompleted(
         mParticleUser: MParticleUser,
-        filteredIdentityApiRequest: FilteredIdentityApiRequest
+        filteredIdentityApiRequest: FilteredIdentityApiRequest,
     ) {
         setUserId(mParticleUser)
         try {
-            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
-                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
-                onSetAllUserAttributes(userAttributes, null,null)
-            })
+            mParticleUser.getUserAttributes(
+                UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                    val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                    onSetAllUserAttributes(userAttributes, null, null)
+                },
+            )
         } catch (e: Exception) {
             Logger.warning(e, "Unable to fetch User Attributes")
         }
@@ -154,14 +169,16 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     override fun onLoginCompleted(
         mParticleUser: MParticleUser,
-        filteredIdentityApiRequest: FilteredIdentityApiRequest
+        filteredIdentityApiRequest: FilteredIdentityApiRequest,
     ) {
         setUserId(mParticleUser)
         try {
-            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
-                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
-                onSetAllUserAttributes(userAttributes, null,null)
-            })
+            mParticleUser.getUserAttributes(
+                UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                    val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                    onSetAllUserAttributes(userAttributes, null, null)
+                },
+            )
         } catch (e: Exception) {
             Logger.warning(e, "Unable to fetch User Attributes")
         }
@@ -169,27 +186,30 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     override fun onLogoutCompleted(
         mParticleUser: MParticleUser,
-        filteredIdentityApiRequest: FilteredIdentityApiRequest
+        filteredIdentityApiRequest: FilteredIdentityApiRequest,
     ) {
         setUserId(mParticleUser)
     }
 
     override fun onModifyCompleted(
         mParticleUser: MParticleUser,
-        filteredIdentityApiRequest: FilteredIdentityApiRequest
+        filteredIdentityApiRequest: FilteredIdentityApiRequest,
     ) {
         setUserId(mParticleUser)
         try {
-            mParticleUser.getUserAttributes(UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
-                val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
-                onSetAllUserAttributes(userAttributes, null,null)
-            })
+            mParticleUser.getUserAttributes(
+                UserAttributeListener { userAttributeSingles, userAttributeLists, mpid ->
+                    val userAttributes: MutableMap<String, String> = HashMap(userAttributeSingles)
+                    onSetAllUserAttributes(userAttributes, null, null)
+                },
+            )
         } catch (e: Exception) {
             Logger.warning(e, "Unable to fetch User Attributes")
         }
     }
 
     override fun onUserIdentified(mParticleUser: MParticleUser) {}
+
     private fun setUserId(user: MParticleUser?) {
         var userId: String? = null
         if (user != null) {
@@ -212,7 +232,9 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         }
         return if (event.isScreenEvent) {
             FirebaseAnalytics.Event.VIEW_ITEM
-        } else standardizeName(event.eventName, true)
+        } else {
+            standardizeName(event.eventName, true)
+        }
     }
 
     private fun toBundle(mapIn: Map<String, String>?): Bundle {
@@ -249,7 +271,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                     if (!shippingTier.isNullOrEmpty()) {
                         pickyBundle.putString(
                             FirebaseAnalytics.Param.SHIPPING_TIER,
-                            shippingTier[0]
+                            shippingTier[0],
                         )
                     }
                 } else if (commerceEventType == FirebaseAnalytics.Event.ADD_PAYMENT_INFO) {
@@ -274,8 +296,9 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             val bundles = arrayOfNulls<Bundle>(products.size)
             var i = 0
             for (product in products) {
-                val bundle = getBundle(product)
-                    .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.currency)
+                val bundle =
+                    getBundle(product)
+                        .putString(FirebaseAnalytics.Param.CURRENCY, commerceEvent.currency)
                 bundles[i] = bundle.bundle
                 i++
             }
@@ -289,37 +312,34 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         val transactionAttributes = commerceEvent.transactionAttributes
         return if (commerceEvent.transactionAttributes == null) {
             pickyBundle
-        } else pickyBundle
-            .putString(
-                FirebaseAnalytics.Param.TRANSACTION_ID,
-                transactionAttributes?.id
-            )
-            .putDouble(
-                FirebaseAnalytics.Param.VALUE,
-                transactionAttributes?.revenue
-            )
-            .putDouble(
-                FirebaseAnalytics.Param.TAX,
-                transactionAttributes?.tax
-            )
-            .putDouble(
-                FirebaseAnalytics.Param.SHIPPING,
-                transactionAttributes?.shipping
-            )
-            .putString(
-                FirebaseAnalytics.Param.COUPON,
-                transactionAttributes?.couponCode
-            )
+        } else {
+            pickyBundle
+                .putString(
+                    FirebaseAnalytics.Param.TRANSACTION_ID,
+                    transactionAttributes?.id,
+                ).putDouble(
+                    FirebaseAnalytics.Param.VALUE,
+                    transactionAttributes?.revenue,
+                ).putDouble(
+                    FirebaseAnalytics.Param.TAX,
+                    transactionAttributes?.tax,
+                ).putDouble(
+                    FirebaseAnalytics.Param.SHIPPING,
+                    transactionAttributes?.shipping,
+                ).putString(
+                    FirebaseAnalytics.Param.COUPON,
+                    transactionAttributes?.couponCode,
+                )
+        }
     }
 
-    private fun getBundle(product: Product): PickyBundle {
-        return PickyBundle()
+    private fun getBundle(product: Product): PickyBundle =
+        PickyBundle()
             .putLong(FirebaseAnalytics.Param.QUANTITY, product.quantity.toLong())
             .putString(FirebaseAnalytics.Param.ITEM_ID, product.sku)
             .putString(FirebaseAnalytics.Param.ITEM_NAME, product.name)
             .putString(FirebaseAnalytics.Param.ITEM_CATEGORY, product.category)
             .putDouble(FirebaseAnalytics.Param.PRICE, product.unitPrice)
-    }
 
     private fun getValue(commerceEvent: CommerceEvent): Double? {
         var value = 0.0
@@ -334,19 +354,24 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         key: String,
         incrementedBy: Number,
         value: String,
-        filteredMParticleUser: FilteredMParticleUser
+        filteredMParticleUser: FilteredMParticleUser,
     ) {
         standardizeName(key, false)?.let {
             FirebaseAnalytics.getInstance(context).setUserProperty(
-                it, value
+                it,
+                value,
             )
         }
     }
 
-    override fun onRemoveUserAttribute(key: String, filteredMParticleUser: FilteredMParticleUser) {
+    override fun onRemoveUserAttribute(
+        key: String,
+        filteredMParticleUser: FilteredMParticleUser,
+    ) {
         standardizeName(key, false)?.let {
             FirebaseAnalytics.getInstance(context).setUserProperty(
-                it, null
+                it,
+                null,
             )
         }
     }
@@ -357,29 +382,34 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
     override fun onSetUserAttribute(
         key: String,
         value: Any,
-        filteredMParticleUser: FilteredMParticleUser
+        filteredMParticleUser: FilteredMParticleUser,
     ) {
         if (value is String) {
             standardizeName(key, false)?.let {
                 FirebaseAnalytics.getInstance(context).setUserProperty(
-                    it, standardizeValue(value, false)
+                    it,
+                    standardizeValue(value, false),
                 )
             }
         }
     }
 
-    override fun onSetUserTag(s: String, filteredMParticleUser: FilteredMParticleUser) {}
+    override fun onSetUserTag(
+        s: String,
+        filteredMParticleUser: FilteredMParticleUser,
+    ) {}
+
     override fun onSetUserAttributeList(
         s: String,
         list: List<String>,
-        filteredMParticleUser: FilteredMParticleUser
+        filteredMParticleUser: FilteredMParticleUser,
     ) {
     }
 
     override fun onSetAllUserAttributes(
         userAttributes: Map<String, String>,
         userAttributeLists: Map<String, List<String>>?,
-        filteredMParticleUser: FilteredMParticleUser?
+        filteredMParticleUser: FilteredMParticleUser?,
     ) {
         var userAttributes: Map<String, String>? = userAttributes
         userAttributes = standardizeAttributes(userAttributes, false)
@@ -390,14 +420,12 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         }
     }
 
-    override fun supportsAttributeLists(): Boolean {
-        return false
-    }
+    override fun supportsAttributeLists(): Boolean = false
 
     override fun onConsentStateUpdated(
         consentState: ConsentState,
         consentState1: ConsentState,
-        filteredMParticleUser: FilteredMParticleUser
+        filteredMParticleUser: FilteredMParticleUser,
     ) {
         setConsent(consentState1)
     }
@@ -405,7 +433,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
     private fun setConsent(consentState: ConsentState) {
         val consentMap: MutableMap<FirebaseAnalytics.ConsentType, FirebaseAnalytics.ConsentStatus> =
             EnumMap(
-                FirebaseAnalytics.ConsentType::class.java
+                FirebaseAnalytics.ConsentType::class.java,
             )
         googleConsentMapSettings.forEach { it ->
             val mpConsentSetting = settings[it.value]
@@ -420,7 +448,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
         val clientConsentSettings = parseToNestedMap(consentState.toString())
 
-        parseConsentMapping(settings[consentMappingSDK]).iterator().forEach { currentConsent ->
+        parseConsentMapping(settings[CONSENT_MAPPING_SDK]).iterator().forEach { currentConsent ->
 
             val isConsentAvailable =
                 searchKeyInNestedMap(clientConsentSettings, key = currentConsent.key)
@@ -431,19 +459,22 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                 val consentStatus =
                     if (isConsentGranted) FirebaseAnalytics.ConsentStatus.GRANTED else FirebaseAnalytics.ConsentStatus.DENIED
 
-
                 when (currentConsent.value) {
-                    "ad_storage" -> consentMap[FirebaseAnalytics.ConsentType.AD_STORAGE] =
-                        consentStatus
+                    "ad_storage" ->
+                        consentMap[FirebaseAnalytics.ConsentType.AD_STORAGE] =
+                            consentStatus
 
-                    "ad_user_data" -> consentMap[FirebaseAnalytics.ConsentType.AD_USER_DATA] =
-                        consentStatus
+                    "ad_user_data" ->
+                        consentMap[FirebaseAnalytics.ConsentType.AD_USER_DATA] =
+                            consentStatus
 
-                    "ad_personalization" -> consentMap[FirebaseAnalytics.ConsentType.AD_PERSONALIZATION] =
-                        consentStatus
+                    "ad_personalization" ->
+                        consentMap[FirebaseAnalytics.ConsentType.AD_PERSONALIZATION] =
+                            consentStatus
 
-                    "analytics_storage" -> consentMap[FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE] =
-                        consentStatus
+                    "analytics_storage" ->
+                        consentMap[FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE] =
+                            consentStatus
                 }
             }
         }
@@ -451,6 +482,7 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             FirebaseAnalytics.getInstance(context).setConsent(consentMap)
         }
     }
+
     private fun parseConsentMapping(json: String?): Map<String, String> {
         if (json.isNullOrEmpty()) {
             return emptyMap()
@@ -469,7 +501,10 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                         }
                 }
         } catch (jse: JSONException) {
-            Logger.warning(jse, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+            Logger.warning(
+                jse,
+                "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.",
+            )
             emptyMap()
         }
     }
@@ -488,12 +523,18 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                 }
             }
         } catch (e: Exception) {
-            Logger.error(e, "The Google Firebase kit was unable to parse the user's ConsentState, consent may not be set correctly on the Google Analytics SDK")
+            Logger.error(
+                e,
+                "The Google Firebase kit was unable to parse the user's ConsentState, consent may not be set correctly on the Google Analytics SDK",
+            )
         }
         return topLevelMap
     }
 
-    private fun searchKeyInNestedMap(map: Map<*, *>, key: Any): Any? {
+    private fun searchKeyInNestedMap(
+        map: Map<*, *>,
+        key: Any,
+    ): Any? {
         if (map.isNullOrEmpty()) {
             return null
         }
@@ -510,14 +551,17 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
                 }
             }
         } catch (e: Exception) {
-            Logger.error(e, "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.")
+            Logger.error(
+                e,
+                "The Google Firebase kit threw an exception while searching for the configured consent purpose mapping in the current user's consent status.",
+            )
         }
         return null
     }
 
     fun standardizeAttributes(
         attributes: Map<String, String>?,
-        event: Boolean
+        event: Boolean,
     ): Map<String, String>? {
         if (attributes == null) {
             return null
@@ -529,21 +573,27 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         return attributeCopy
     }
 
-    fun standardizeValue(valueIn: String?, event: Boolean): String {
+    fun standardizeValue(
+        valueIn: String?,
+        event: Boolean,
+    ): String {
         var value = valueIn ?: return ""
         if (event) {
-            if (value.length > eventValMaxLength) {
-                value = value.substring(0, eventValMaxLength)
+            if (value.length > EVENT_VAL_MAX_LENGTH) {
+                value = value.substring(0, EVENT_VAL_MAX_LENGTH)
             }
         } else {
-            if (value.length > userAttributeValMaxLength) {
-                value = value.substring(0, userAttributeValMaxLength)
+            if (value.length > USER_ATTRIBUTE_VAL_MAX_LENGTH) {
+                value = value.substring(0, USER_ATTRIBUTE_VAL_MAX_LENGTH)
             }
         }
         return value
     }
 
-    fun standardizeName(nameIn: String?, event: Boolean): String? {
+    fun standardizeName(
+        nameIn: String?,
+        event: Boolean,
+    ): String? {
         var name = nameIn ?: return null
         name = name.replace("[^a-zA-Z0-9_\\s]".toRegex(), " ")
         name = name.replace("[\\s]+".toRegex(), "_")
@@ -556,12 +606,12 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
             name = name.substring(1)
         }
         if (event) {
-            if (name.length > eventMaxLength) {
-                name = name.substring(0, eventMaxLength)
+            if (name.length > EVENT_MAX_LENGTH) {
+                name = name.substring(0, EVENT_MAX_LENGTH)
             }
         } else {
-            if (name.length > userAttributeMaxLength) {
-                name = name.substring(0, userAttributeMaxLength)
+            if (name.length > USER_ATTRIBUTE_MAX_LENGTH) {
+                name = name.substring(0, USER_ATTRIBUTE_MAX_LENGTH)
             }
         }
         return name
@@ -569,35 +619,51 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
 
     class PickyBundle {
         val bundle = Bundle()
-        fun putString(key: String?, value: String?): PickyBundle {
+
+        fun putString(
+            key: String?,
+            value: String?,
+        ): PickyBundle {
             if (value != null) {
                 bundle.putString(key, value)
             }
             return this
         }
 
-        fun putDouble(key: String?, value: Double?): PickyBundle {
+        fun putDouble(
+            key: String?,
+            value: Double?,
+        ): PickyBundle {
             if (value != null) {
                 bundle.putDouble(key, value)
             }
             return this
         }
 
-        fun putLong(key: String?, value: Long?): PickyBundle {
+        fun putLong(
+            key: String?,
+            value: Long?,
+        ): PickyBundle {
             if (value != null) {
                 bundle.putLong(key, value)
             }
             return this
         }
 
-        fun putInt(key: String?, value: Int?): PickyBundle {
+        fun putInt(
+            key: String?,
+            value: Int?,
+        ): PickyBundle {
             if (value != null) {
                 bundle.putInt(key, value)
             }
             return this
         }
 
-        fun putBundleList(key: String?, value: Array<Bundle?>?): PickyBundle {
+        fun putBundleList(
+            key: String?,
+            value: Array<Bundle?>?,
+        ): PickyBundle {
             if (value != null) {
                 bundle.putParcelableArray(key, value)
             }
@@ -618,24 +684,28 @@ class GoogleAnalyticsFirebaseKit : KitIntegration(), KitIntegration.EventListene
         const val WARNING_MESSAGE =
             "Firebase no longer supports CHECKOUT_OPTION. To specify a different eventName, add CF_COMMERCE_EVENT_TYPE to your customFlags with a valid value"
         private const val USD = "USD"
-        private const val eventMaxLength = 40
-        private const val userAttributeMaxLength = 24
-        private const val eventValMaxLength = 100
-        private const val userAttributeValMaxLength = 36
+        private const val EVENT_MAX_LENGTH = 40
+        private const val USER_ATTRIBUTE_MAX_LENGTH = 24
+        private const val EVENT_VAL_MAX_LENGTH = 100
+        private const val USER_ATTRIBUTE_VAL_MAX_LENGTH = 36
         private const val KIT_NAME = "Google Analytics for Firebase"
 
-        //Constants for Read Consent
-        private const val consentMappingSDK = "consentMappingSDK"
-        enum class GoogleConsentValues(val consentValue: String) {
+        // Constants for Read Consent
+        private const val CONSENT_MAPPING_SDK = "consentMappingSDK"
+
+        enum class GoogleConsentValues(
+            val consentValue: String,
+        ) {
             GRANTED("Granted"),
-            DENIED("Denied")
+            DENIED("Denied"),
         }
 
-        val googleConsentMapSettings = mapOf(
-            FirebaseAnalytics.ConsentType.AD_STORAGE to "defaultAdStorageConsentSDK",
-            FirebaseAnalytics.ConsentType.AD_USER_DATA to "defaultAdUserDataConsentSDK",
-            FirebaseAnalytics.ConsentType.AD_PERSONALIZATION to "defaultAdPersonalizationConsentSDK",
-            FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE to "defaultAnalyticsStorageConsentSDK"
-        )
+        val googleConsentMapSettings =
+            mapOf(
+                FirebaseAnalytics.ConsentType.AD_STORAGE to "defaultAdStorageConsentSDK",
+                FirebaseAnalytics.ConsentType.AD_USER_DATA to "defaultAdUserDataConsentSDK",
+                FirebaseAnalytics.ConsentType.AD_PERSONALIZATION to "defaultAdPersonalizationConsentSDK",
+                FirebaseAnalytics.ConsentType.ANALYTICS_STORAGE to "defaultAnalyticsStorageConsentSDK",
+            )
     }
 }

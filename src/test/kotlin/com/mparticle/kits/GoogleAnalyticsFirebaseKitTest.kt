@@ -3,8 +3,6 @@ package com.mparticle.kits
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle
-
 import com.google.firebase.analytics.FirebaseAnalytics
 import com.mparticle.MPEvent
 import com.mparticle.MParticle
@@ -35,7 +33,8 @@ import org.mockito.MockitoAnnotations
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
-import java.util.*
+import java.util.HashMap
+import java.util.Random
 
 /**
  * Example local unit test, which will execute on the development machine (host).
@@ -63,14 +62,18 @@ class GoogleAnalyticsFirebaseKitTest {
         MParticle.setInstance(Mockito.mock(MParticle::class.java))
         Mockito.`when`(MParticle.getInstance()!!.Identity()).thenReturn(
             Mockito.mock(
-                IdentityApi::class.java
+                IdentityApi::class.java,
+            ),
+        )
+        val kitManager =
+            KitManagerImpl(
+                Mockito.mock(
+                    Context::class.java,
+                ),
+                null,
+                emptyCoreCallbacks,
+                mock(MParticleOptions::class.java),
             )
-        )
-        val kitManager = KitManagerImpl(
-            Mockito.mock(
-                Context::class.java
-            ), null, emptyCoreCallbacks, mock(MParticleOptions::class.java)
-        )
         kitInstance.kitManager = kitManager
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("id", "-1"))
@@ -99,7 +102,7 @@ class GoogleAnalyticsFirebaseKitTest {
             if (event.eventType != MParticle.EventType.Search) {
                 TestCase.assertEquals(
                     kitInstance.standardizeName(event.eventName, true),
-                    firebaseEvent.key
+                    firebaseEvent.key,
                 )
             } else {
                 TestCase.assertEquals("search", firebaseEvent.key)
@@ -111,7 +114,8 @@ class GoogleAnalyticsFirebaseKitTest {
                     val value = kitInstance.standardizeValue(customAttEvent.value as String?, true)
                     if (key != null) {
                         TestCase.assertEquals(
-                            value, firebaseEvent.value.getString(key)
+                            value,
+                            firebaseEvent.value.getString(key),
                         )
                     }
                 }
@@ -142,15 +146,17 @@ class GoogleAnalyticsFirebaseKitTest {
                 firebaseSdk.clearLoggedEvents()
                 val eventType = field?.get(null).toString()
                 if (eventType != "remove_from_wishlist") {
-                    val event = CommerceEvent.Builder(
-                        eventType,
-                        Product.Builder("asdv", "asdv", 1.3).build()
-                    )
-                        .transactionAttributes(
-                            TransactionAttributes().setId("235").setRevenue(23.3)
-                                .setAffiliation("231")
-                        )
-                        .build()
+                    val event =
+                        CommerceEvent
+                            .Builder(
+                                eventType,
+                                Product.Builder("asdv", "asdv", 1.3).build(),
+                            ).transactionAttributes(
+                                TransactionAttributes()
+                                    .setId("235")
+                                    .setRevenue(23.3)
+                                    .setAffiliation("231"),
+                            ).build()
                     kitInstance.logEvent(event)
                  /*   TestCase.assertEquals(
                         "failed for event type: $eventType",
@@ -175,15 +181,18 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-
-        val marketingConsent = GDPRConsent.builder(false)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(false)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -215,14 +224,18 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -254,14 +267,18 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -278,7 +295,6 @@ class GoogleAnalyticsFirebaseKitTest {
         val expectedConsentValue4 =
             firebaseSdk.getConsentState().getKeyByValue("AD_STORAGE").toString()
         TestCase.assertEquals("GRANTED", expectedConsentValue4)
-
     }
 
     @Test
@@ -294,15 +310,19 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val performanceConsent = GDPRConsent.builder(false)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(false)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -334,22 +354,28 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -374,26 +400,31 @@ class GoogleAnalyticsFirebaseKitTest {
         map["consentMappingSDK"] =
             "[{\\\"jsmap\\\":null,\\\"map\\\":\\\"Performance\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_user_data\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"Marketing\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_personalization\\\"},{\\\"jsmap\\\":null,\\\"map\\\":\\\"testconsent\\\",\\\"maptype\\\":\\\"ConsentPurposes\\\",\\\"value\\\":\\\"ad_storage\\\"}]"
 
-
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -409,27 +440,31 @@ class GoogleAnalyticsFirebaseKitTest {
 
     @Test
     fun onConsentStateUpdatedTest_When_No_DATA_From_Server() {
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
-
 
         TestCase.assertEquals(0, firebaseSdk.getConsentState().size)
     }
@@ -445,22 +480,28 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -478,7 +519,6 @@ class GoogleAnalyticsFirebaseKitTest {
             firebaseSdk.getConsentState().getKeyByValue("AD_PERSONALIZATION").toString()
         TestCase.assertEquals("DENIED", expectedConsentValue4)
         TestCase.assertEquals(4, firebaseSdk.getConsentState().size)
-
     }
 
     @Test
@@ -492,25 +532,30 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
-
 
         TestCase.assertEquals(0, firebaseSdk.getConsentState().size)
     }
@@ -528,21 +573,27 @@ class GoogleAnalyticsFirebaseKitTest {
         kitInstance.configuration =
             KitConfiguration.createKitConfiguration(JSONObject().put("as", map.toMutableMap()))
 
-        val marketingConsent = GDPRConsent.builder(true)
-            .document("Test consent")
-            .location("17 Cherry Tree Lane")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
+        val marketingConsent =
+            GDPRConsent
+                .builder(true)
+                .document("Test consent")
+                .location("17 Cherry Tree Lane")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
 
-        val performanceConsent = GDPRConsent.builder(true)
-            .document("parental_consent_agreement_v2")
-            .location("17 Cherry Tree Lan 3")
-            .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
-            .build()
-        val state = ConsentState.builder()
-            .addGDPRConsentState("Marketing", marketingConsent)
-            .addGDPRConsentState("Performance", performanceConsent)
-            .build()
+        val performanceConsent =
+            GDPRConsent
+                .builder(true)
+                .document("parental_consent_agreement_v2")
+                .location("17 Cherry Tree Lan 3")
+                .hardwareId("IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702")
+                .build()
+        val state =
+            ConsentState
+                .builder()
+                .addGDPRConsentState("Marketing", marketingConsent)
+                .addGDPRConsentState("Performance", performanceConsent)
+                .build()
         filteredMParticleUser = FilteredMParticleUser.getInstance(user, kitInstance)
 
         kitInstance.onConsentStateUpdated(state, state, filteredMParticleUser)
@@ -570,10 +621,11 @@ class GoogleAnalyticsFirebaseKitTest {
         var jsonInput =
             "{'GDPR':{'marketing':'{:false,'timestamp':1711038269644:'Test consent','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}','performance':'{'consented':true,'timestamp':1711038269644,'document':'parental_consent_agreement_v2','location':'17 Cherry Tree Lan 3','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'},'CCPA':'{'consented':true,'timestamp':1711038269644,'document':'ccpa_consent_agreement_v3','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'}"
 
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "parseToNestedMap",
-            String::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "parseToNestedMap",
+                String::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, jsonInput)
         Assert.assertEquals(mutableMapOf<String, Any>(), result)
@@ -583,10 +635,11 @@ class GoogleAnalyticsFirebaseKitTest {
     fun testParseToNestedMap_When_JSON_Is_Empty() {
         var jsonInput = ""
 
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "parseToNestedMap",
-            String::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "parseToNestedMap",
+                String::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, jsonInput)
         Assert.assertEquals(mutableMapOf<String, Any>(), result)
@@ -594,19 +647,24 @@ class GoogleAnalyticsFirebaseKitTest {
 
     @Test
     fun testSearchKeyInNestedMap_When_Input_Key_Is_Empty_String() {
-        val map = mapOf(
-            "GDPR" to true,
-            "marketing" to mapOf(
-                "consented" to false,
-                "document" to mapOf(
-                    "timestamp" to 1711038269644
-                )
+        val map =
+            mapOf(
+                "GDPR" to true,
+                "marketing" to
+                    mapOf(
+                        "consented" to false,
+                        "document" to
+                            mapOf(
+                                "timestamp" to 1711038269644,
+                            ),
+                    ),
             )
-        )
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "searchKeyInNestedMap", Map::class.java,
-            Any::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "searchKeyInNestedMap",
+                Map::class.java,
+                Any::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, map, "")
         Assert.assertEquals(null, result)
@@ -615,10 +673,12 @@ class GoogleAnalyticsFirebaseKitTest {
     @Test
     fun testSearchKeyInNestedMap_When_Input_Is_Empty_Map() {
         val emptyMap: Map<String, Int> = emptyMap()
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "searchKeyInNestedMap", Map::class.java,
-            Any::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "searchKeyInNestedMap",
+                Map::class.java,
+                Any::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, emptyMap, "1")
         Assert.assertEquals(null, result)
@@ -627,10 +687,11 @@ class GoogleAnalyticsFirebaseKitTest {
     @Test
     fun testParseConsentMapping_When_Input_Is_Empty_Json() {
         val emptyJson = ""
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "parseConsentMapping",
-            String::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "parseConsentMapping",
+                String::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, emptyJson)
         Assert.assertEquals(emptyMap<String, String>(), result)
@@ -640,10 +701,11 @@ class GoogleAnalyticsFirebaseKitTest {
     fun testParseConsentMapping_When_Input_Is_Invalid_Json() {
         var jsonInput =
             "{'GDPR':{'marketing':'{:false,'timestamp':1711038269644:'Test consent','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}','performance':'{'consented':true,'timestamp':1711038269644,'document':'parental_consent_agreement_v2','location':'17 Cherry Tree Lan 3','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'},'CCPA':'{'consented':true,'timestamp':1711038269644,'document':'ccpa_consent_agreement_v3','location':'17 Cherry Tree Lane','hardware_id':'IDFA:a5d934n0-232f-4afc-2e9a-3832d95zc702'}'}"
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "parseConsentMapping",
-            String::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "parseConsentMapping",
+                String::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, jsonInput)
         Assert.assertEquals(emptyMap<String, String>(), result)
@@ -651,10 +713,11 @@ class GoogleAnalyticsFirebaseKitTest {
 
     @Test
     fun testParseConsentMapping_When_Input_Is_NULL() {
-        val method: Method = GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
-            "parseConsentMapping",
-            String::class.java
-        )
+        val method: Method =
+            GoogleAnalyticsFirebaseKit::class.java.getDeclaredMethod(
+                "parseConsentMapping",
+                String::class.java,
+            )
         method.isAccessible = true
         val result = method.invoke(kitInstance, null)
         Assert.assertEquals(emptyMap<String, String>(), result)
@@ -662,40 +725,41 @@ class GoogleAnalyticsFirebaseKitTest {
 
     @Test
     fun testShippingInfoCommerceEvent() {
-        val event = CommerceEvent.Builder(
-            Product.CHECKOUT_OPTION,
-            Product.Builder("asdv", "asdv", 1.3).build()
-        )
-            .addCustomFlag(
-                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
-                FirebaseAnalytics.Event.ADD_SHIPPING_INFO
-            )
-            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_SHIPPING_TIER, "overnight")
-            .build()
+        val event =
+            CommerceEvent
+                .Builder(
+                    Product.CHECKOUT_OPTION,
+                    Product.Builder("asdv", "asdv", 1.3).build(),
+                ).addCustomFlag(
+                    "Firebase.CommerceEventType",
+                    FirebaseAnalytics.Event.ADD_SHIPPING_INFO,
+                ).addCustomFlag("Firebase.ShippingTier", "overnight")
+                .build()
         kitInstance.logEvent(event)
         TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
         TestCase.assertEquals("add_shipping_info", firebaseSdk.loggedEvents[0].key)
         TestCase.assertEquals(
             "overnight",
-            firebaseSdk.loggedEvents[0].value.getString("shipping_tier")
+            firebaseSdk.loggedEvents[0].value.getString("shipping_tier"),
         )
     }
 
     @Test
     fun testPaymentInfoCommerceEvent() {
-        val commerceCustomAttributes = mapOf(
-            "event::country" to "US"
-        )
-        val event = CommerceEvent.Builder(
-            Product.CHECKOUT_OPTION,
-            Product.Builder("asdv", "asdv", 1.3).build()
-        )
-            .addCustomFlag(
-                GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
-                FirebaseAnalytics.Event.ADD_PAYMENT_INFO
+        val commerceCustomAttributes =
+            mapOf(
+                "event::country" to "US",
             )
-            .addCustomFlag(GoogleAnalyticsFirebaseKit.CF_PAYMENT_TYPE, "visa")
-            .build()
+        val event =
+            CommerceEvent
+                .Builder(
+                    Product.CHECKOUT_OPTION,
+                    Product.Builder("asdv", "asdv", 1.3).build(),
+                ).addCustomFlag(
+                    "Firebase.CommerceEventType",
+                    FirebaseAnalytics.Event.ADD_PAYMENT_INFO,
+                ).addCustomFlag("Firebase.PaymentType", "visa")
+                .build()
         event.customAttributes = commerceCustomAttributes
         kitInstance.logEvent(event)
         TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
@@ -706,20 +770,21 @@ class GoogleAnalyticsFirebaseKitTest {
 
     @Test
     fun testCheckoutOptionCommerceEvent() {
-        val customEventTypes = arrayOf(
-            FirebaseAnalytics.Event.ADD_PAYMENT_INFO,
-            FirebaseAnalytics.Event.ADD_SHIPPING_INFO
-        )
-        for (customEventType in customEventTypes) {
-            val event = CommerceEvent.Builder(
-                Product.CHECKOUT_OPTION,
-                Product.Builder("asdv", "asdv", 1.3).build()
+        val customEventTypes =
+            arrayOf(
+                FirebaseAnalytics.Event.ADD_PAYMENT_INFO,
+                FirebaseAnalytics.Event.ADD_SHIPPING_INFO,
             )
-                .addCustomFlag(
-                    GoogleAnalyticsFirebaseKit.CF_COMMERCE_EVENT_TYPE,
-                    customEventType
-                )
-                .build()
+        for (customEventType in customEventTypes) {
+            val event =
+                CommerceEvent
+                    .Builder(
+                        Product.CHECKOUT_OPTION,
+                        Product.Builder("asdv", "asdv", 1.3).build(),
+                    ).addCustomFlag(
+                        "Firebase.CommerceEventType",
+                        customEventType,
+                    ).build()
             kitInstance.logEvent(event)
             TestCase.assertEquals(1, firebaseSdk.loggedEvents.size)
             TestCase.assertEquals(customEventType, firebaseSdk.loggedEvents[0].key)
@@ -740,26 +805,27 @@ class GoogleAnalyticsFirebaseKitTest {
         val emptySpace4 = "event - name "
         TestCase.assertEquals(
             "event_name",
-            kitInstance.standardizeName(emptySpace1, random.nextBoolean())
+            kitInstance.standardizeName(emptySpace1, random.nextBoolean()),
         )
         TestCase.assertEquals(
             "event_name_",
-            kitInstance.standardizeName(emptySpace2, random.nextBoolean())
+            kitInstance.standardizeName(emptySpace2, random.nextBoolean()),
         )
         TestCase.assertEquals(
             "event_name_",
-            kitInstance.standardizeName(emptySpace3, random.nextBoolean())
+            kitInstance.standardizeName(emptySpace3, random.nextBoolean()),
         )
         TestCase.assertEquals(
             "event_name_",
-            kitInstance.standardizeName(emptySpace4, random.nextBoolean())
+            kitInstance.standardizeName(emptySpace4, random.nextBoolean()),
         )
-        val badStarts = arrayOf(
-            "!@#$%^&*()_+=[]{}|'\"?><:;event_name",
-            "_event_name",
-            "   event_name",
-            "_event_name"
-        )
+        val badStarts =
+            arrayOf(
+                "!@#$%^&*()_+=[]{}|'\"?><:;event_name",
+                "_event_name",
+                "   event_name",
+                "_event_name",
+            )
         for (badStart in badStarts) {
             val clean = kitInstance.standardizeName(badStart, random.nextBoolean())
             TestCase.assertEquals("event_name", clean)
@@ -778,7 +844,6 @@ class GoogleAnalyticsFirebaseKitTest {
         sanitized = kitInstance.standardizeValue(tooLong, false)
         TestCase.assertEquals(36, sanitized.length)
         TestCase.assertTrue(tooLong.startsWith(sanitized))
-
     }
 
     @Test
@@ -787,7 +852,7 @@ class GoogleAnalyticsFirebaseKitTest {
         val firebaseScreenViewEvent = firebaseSdk.loggedEvents[0]
         TestCase.assertEquals(
             "Some_long_Screen_name",
-            firebaseScreenViewEvent.value.getString("screen_name")
+            firebaseScreenViewEvent.value.getString("screen_name"),
         )
     }
 
@@ -800,80 +865,81 @@ class GoogleAnalyticsFirebaseKitTest {
         // even though we are passing one attribute, it should contain two including the screen_name
         TestCase.assertEquals(
             2,
-            firebaseScreenViewEvent.value.size()
+            firebaseScreenViewEvent.value.size(),
         )
         // make sure the even name is correct with Firebase's constant SCREEN_NAME value
         TestCase.assertEquals(
             "screen_view",
-            firebaseScreenViewEvent.key
+            firebaseScreenViewEvent.key,
         )
         // make sure that the Params include the screenName value
         TestCase.assertEquals(
             "testScreenName",
-            firebaseScreenViewEvent.value.getString("screen_name")
+            firebaseScreenViewEvent.value.getString("screen_name"),
         )
     }
 
-    private var emptyCoreCallbacks: CoreCallbacks = object : CoreCallbacks {
-        var activity = Activity()
-        override fun isBackgrounded(): Boolean {
-            return false
-        }
+    private var emptyCoreCallbacks: CoreCallbacks =
+        object : CoreCallbacks {
+            var activity = Activity()
 
-        override fun getUserBucket(): Int {
-            return 0
-        }
+            override fun isBackgrounded(): Boolean = false
 
-        override fun isEnabled(): Boolean {
-            return false
-        }
+            override fun getUserBucket(): Int = 0
 
-        override fun setIntegrationAttributes(i: Int, map: Map<String, String>) {}
-        override fun getIntegrationAttributes(i: Int): Map<String, String> {
-            return emptyMap()
-        }
+            override fun isEnabled(): Boolean = false
 
-        override fun getCurrentActivity(): WeakReference<Activity> {
-            return WeakReference(activity)
-        }
+            override fun setIntegrationAttributes(
+                i: Int,
+                map: Map<String, String>,
+            ) {}
 
-        override fun getLatestKitConfiguration(): JSONArray? {
-            return null
-        }
+            override fun getIntegrationAttributes(i: Int): Map<String, String> = emptyMap()
 
-        override fun getDataplanOptions(): DataplanOptions? {
-            return null
-        }
+            override fun getCurrentActivity(): WeakReference<Activity> = WeakReference(activity)
 
-        override fun isPushEnabled(): Boolean {
-            return false
-        }
+            override fun getLatestKitConfiguration(): JSONArray? = null
 
-        override fun getPushSenderId(): String? {
-            return null
-        }
+            override fun getDataplanOptions(): DataplanOptions? = null
 
-        override fun getPushInstanceId(): String? {
-            return null
-        }
+            override fun isPushEnabled(): Boolean = false
 
-        override fun getLaunchUri(): Uri? {
-            return null
-        }
+            override fun getPushSenderId(): String? = null
 
-        override fun getLaunchAction(): String? {
-            return null
-        }
+            override fun getPushInstanceId(): String? = null
 
-        override fun getKitListener(): KitListener {
-            return object : KitListener {
-                override fun kitFound(kitId: Int) {}
-                override fun kitConfigReceived(kitId: Int, configuration: String?) {}
-                override fun kitExcluded(kitId: Int, reason: String?) {}
-                override fun kitStarted(kitId: Int) {}
-                override fun onKitApiCalled(kitId: Int, used: Boolean?, vararg objects: Any?) {}
-                override fun onKitApiCalled(methodName: String?, kitId: Int, used: Boolean?, vararg objects: Any?) {}
-            }
+            override fun getLaunchUri(): Uri? = null
+
+            override fun getLaunchAction(): String? = null
+
+            override fun getKitListener(): KitListener =
+                object : KitListener {
+                    override fun kitFound(kitId: Int) {}
+
+                    override fun kitConfigReceived(
+                        kitId: Int,
+                        configuration: String?,
+                    ) {}
+
+                    override fun kitExcluded(
+                        kitId: Int,
+                        reason: String?,
+                    ) {}
+
+                    override fun kitStarted(kitId: Int) {}
+
+                    override fun onKitApiCalled(
+                        kitId: Int,
+                        used: Boolean?,
+                        vararg objects: Any?,
+                    ) {}
+
+                    override fun onKitApiCalled(
+                        methodName: String?,
+                        kitId: Int,
+                        used: Boolean?,
+                        vararg objects: Any?,
+                    ) {}
+                }
         }
-    }
 }
